@@ -10,7 +10,7 @@ dest <- "C:/Data/Test Folder"
 mytxtfiles <- list.files(path = dest, pattern = "txt",  full.names = TRUE)
 
 library(tm)
-mycorpus <- Corpus(DirSource(dest, pattern = "txt"))
+mycorpus <- Corpus(DirSource(comLoc, pattern = "html"))
 # warnings may appear after you run the previous line, they
 # can be ignored
 mycorpus <- tm_map(mycorpus,  removeNumbers)
