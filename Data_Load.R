@@ -14,6 +14,7 @@ library(rvest)
 library(scrapeR)
 library(jsonlite)
 library(httr)
+library(tidyverse)
 
 
 #####################
@@ -81,8 +82,10 @@ myfiles <- list.files(path = "files/", pattern = "pdf",  full.names = TRUE) #get
 ########################
 # Load FDMS Reports    #
 ########################
-comLoc <- "C:/Data/Comments/CMS-2017-0163/FDMS/files"
+library(readxl)
+comLoc <- "C:/Data/Comments/CMS-2017-0163/FDMS"
 comReport <- read_excel(paste(comLoc, "/report.xlsx", sep=""), sheet = "Nonrulemaking-Public Submission")
+comReport$Site_Key <- substring(comReport$`Email Address`, regexpr("@", comReport$`Email Address`) + 1)
 attReport <- read_excel(paste(comLoc, "/report.xlsx", sep=""), sheet = "Attachments")
 
 
