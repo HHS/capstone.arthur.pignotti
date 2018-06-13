@@ -23,12 +23,12 @@ library(tidyverse)
 api_key = "bbPnmY2FqvoazRuHseN0liEsWh0qI255CgJTsPAo"
 
 #API call to get the number of record calls needs. API limits pull to 1000 records
-countUrl = paste("https://api.data.gov:443/regulations/v3/documents.json?api_key=",api_key,"&countsOnly=1&encoded=1&dct=PS&dktid=", dktid, sep ="")
+countUrl = paste0("https://api.data.gov:443/regulations/v3/documents.json?api_key=",api_key,"&countsOnly=1&encoded=1&dct=PS&dktid=", dktid)
 recCount <- fromJSON(countUrl)
 pageCount <- ceiling(recCount$totalNumRecords/100)
 
 for (i in 1:pageCount){
-    pageUrl = paste("https://api.data.gov:443/regulations/v3/documents.json?api_key=", api_key, "&rpp=100&dct=PS&encoded=1&dktid=", dktid, "&po=", (i-1)*100, sep ="")
+    pageUrl = paste0("https://api.data.gov:443/regulations/v3/documents.json?api_key=", api_key, "&rpp=100&dct=PS&encoded=1&dktid=", dktid, "&po=", (i-1)*100)
     dataPull <- fromJSON(pageUrl)
     if (i==1){
         comments <- data.frame(dataPull$documents)
@@ -52,8 +52,9 @@ for (comment in 1:nrow(attachList)){
         test <- HEAD(attachUrl)
         if (test$status_code==200){
             tmp <- test$headers$`content-disposition`
-            file <- substr(tmp, 23, nchar(tmp)-1)
-            download.file(attachUrl, paste("files/",  attachList[comment, "documentId"], "-", doc, " - " , file, sep = ""), mode="wb")
+            file <- substr(tmp, nchar(tmp)-1, nchar(tmp)-1)
+            file <- str_extract(tmp, "\\.[A-Za-z]{3,4}")
+            download.file(attachUrl, paste0("files/",  attachList[comment, "documentId"], "-", doc, file), mode="wb")
             
         } else if (errflag==1){
             errorLog = data.frame(docId = attachList[comment, "documentId"], error = test$status_code)
@@ -76,7 +77,13 @@ download.file(attachUrl, paste("files/",  attachList[comment, "documentId"], "-"
 # Convert PDFs         #
 ########################
 
-myfiles <- list.files(path = "files/", pattern = "pdf",  full.names = TRUE) #get list of PDFs
+attachLoc <- "C:/Data/Comments/CMS-2017-0163/FDMS/files"
+pdfCnt <- length(list.files(path = "files/", pattern = "pdf")) #number of PDFs
+docCnt <- length(list.files(path = "files/", pattern = "doc")) #number of Docs
+
+
+pdfCnt <- length(list.files(path = "files/", pattern = "pdf",  full.names = TRUE)) #get list of PDFs
+mycorpus <- Corpus(DirSource(attachLoc, pattern = "pdf"))
 
 
 ########################
@@ -87,6 +94,12 @@ comLoc <- "C:/Data/Comments/CMS-2017-0163/FDMS"
 comReport <- read_excel(paste(comLoc, "/report.xlsx", sep=""), sheet = "Nonrulemaking-Public Submission")
 comReport$Site_Key <- substring(comReport$`Email Address`, regexpr("@", comReport$`Email Address`) + 1)
 attReport <- read_excel(paste(comLoc, "/report.xlsx", sep=""), sheet = "Attachments")
+
+
+########################
+# Load FDMS Reports    #
+########################
+
 
 
 ##########################
