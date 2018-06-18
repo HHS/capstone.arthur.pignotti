@@ -96,6 +96,8 @@ words_tf_idf %>%
     facet_wrap(~Document.ID, ncol = 2, scales = "free") +
     coord_flip()
 
+library(tm)
+words_dtm <- cast_dtm(words_tf_idf, document = Document.ID, term = word, value = tf_idf)
 
 
 #######################
@@ -137,6 +139,56 @@ bigram_tf_idf %>%
     facet_wrap(~Document.ID, ncol = 2, scales = "free") +
     coord_flip()
 
+
+####################
+# Network Graph    #
+####################
+
+library(igraph)
+library(ggraph)
+set.seed(2017)
+
+bigram_graph <- test %>%
+    unnest_tokens(bigram, Text, token = "ngrams", n = 2) %>%
+    separate(bigram, c("word1", "word2"), sep = " ") %>%
+    filter(!word1 %in% stop_words$word) %>%
+    filter(!word2 %in% stop_words$word) %>% 
+    count(word1, word2, sort = TRUE) %>% 
+    filter(n > 1000) %>%
+    graph_from_data_frame()
+
+a <- grid::arrow(type = "closed", length = unit(.1, "inches"))
+
+ggraph(bigram_graph, layout = "fr") +
+    geom_edge_link(aes(edge_alpha = n), show.legend = FALSE,
+                   arrow = a, end_cap = circle(.01, 'inches')) +
+    geom_node_point(color = "lightblue", size = 3) +
+    geom_node_text(aes(label = name), vjust = 1, hjust = 1) +
+    theme_void()
+
+
+##########################
+# Pairwaise Correlations #
+##########################
+
+library(widyr)
+
+word_cors <- test1 %>%
+    group_by(word) %>%
+    filter(n() >= 100) %>%
+    pairwise_cor(word, Document.ID, sort = TRUE)
+
+
+word_cors %>%
+    filter(item1 %in% c("drug", "dir", "pharmacy", "pbm")) %>%
+    group_by(item1) %>%
+    top_n(10) %>%
+    ungroup() %>%
+    mutate(item2 = reorder(item2, correlation)) %>%
+    ggplot(aes(item2, correlation)) +
+    geom_bar(stat = "identity") +
+    facet_wrap(~ item1, scales = "free") +
+    coord_flip()
 
 ##############################
 # Sentiment Analysis Testing #
