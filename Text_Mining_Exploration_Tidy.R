@@ -1,3 +1,9 @@
+#####################
+# Initial Setup     #
+#####################
+.libPaths( c("C:/R/Packages", .libPaths()) ) #add extra library location
+setwd("C:/Users/P6BQ/Desktop/capstone.arthur.pignotti") #local location of github repo
+
 ############################
 # Create Corpus Using Tidy #
 ############################
@@ -89,6 +95,48 @@ words_tf_idf %>%
     labs(x = NULL, y = "tf-idf") +
     facet_wrap(~Document.ID, ncol = 2, scales = "free") +
     coord_flip()
+
+
+
+#######################
+# Bigram Testing      #
+#######################
+bigram_count <- test %>%
+    unnest_tokens(bigram, Text, token = "ngrams", n = 2) %>%
+    separate(bigram, c("word1", "word2"), sep = " ") %>%
+    filter(!word1 %in% stop_words$word) %>%
+    filter(!word2 %in% stop_words$word) %>% 
+    count(Document.ID, word1, word2, sort = TRUE) %>%
+    unite(bigram, word1, word2, sep = " ")
+
+bigram_total <- bigram_count %>% 
+    group_by(bigram) %>% 
+    summarize(total = sum(n)) %>%
+    arrange(desc(total))
+
+bigram_total <- bigram_count %>% 
+    group_by(Document.ID) %>% 
+    summarize(total = sum(n))
+
+bigrams <- left_join(bigram_count, bigram_total)
+
+bigram_tf_idf <- bigrams %>%
+    bind_tf_idf(bigram, Document.ID, n) %>%
+    arrange(desc(tf_idf))
+
+bigram_tf_idf %>%
+    filter(total > 7000) %>%
+    arrange(desc(tf_idf)) %>%
+    mutate(bigram = factor(bigram, levels = rev(unique(bigram))))%>% 
+    group_by(Document.ID) %>% 
+    top_n(15) %>% 
+    ungroup %>%
+    ggplot(aes(bigram, tf_idf, fill = Document.ID)) +
+    geom_col(show.legend = FALSE) +
+    labs(x = NULL, y = "tf-idf") +
+    facet_wrap(~Document.ID, ncol = 2, scales = "free") +
+    coord_flip()
+
 
 ##############################
 # Sentiment Analysis Testing #
