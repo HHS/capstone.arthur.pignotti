@@ -75,3 +75,4 @@ commentsDf <- comments %>%
     union(attachExtract)
 
 
+write.csv(commentsDf, file = "Data/commentsDf.csv", row.names = FALSE)

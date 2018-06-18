@@ -37,7 +37,7 @@ for (i in 1:pageCount){
     }
 }
 
-write.csv(comments, file = "Data/comments.csv")
+write.csv(comments, file = "Data/comments.csv", row.names = FALSE)
 
 
 ########################
@@ -67,6 +67,9 @@ for (comment in 1:nrow(attachList)){
         }
     }
 }
+
+
+# Clean up?
 nrow(attachList)
 write.csv(attachList, file="test.csv")
 attachUrl = "https://www.regulations.gov/contentStreamer?documentId=CMS-2017-0163-1203&disposition=attachment&attachmentNumber=1"

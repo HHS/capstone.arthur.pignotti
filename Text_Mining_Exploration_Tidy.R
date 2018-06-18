@@ -2,6 +2,8 @@
 # Create Corpus Using Tidy #
 ############################
 
+commentsDf <- read.csv("Data/commentsDf.csv", stringsAsFactors = FALSE)
+
 library(dplyr)
 library(stringr)
 library(ggplot2)
@@ -26,6 +28,15 @@ cms_stop <- data.frame(word = c("cms","medicare","ma", "plan", "care", "benefici
 test1 <- test1 %>%
     anti_join(cms_stop)
 
+#######################
+# Spell Check Testing #
+#######################
+library(hunspell)
+spell.test <- hunspell_find(test1$word)
+str(spell.test)
+spell.test1 <- unique(spell.test)
+spell.count <- as.data.frame(spell.test1)
+
 test1 %>%
     count(word, sort = TRUE) %>%
     filter(n > 4000) %>%
@@ -46,13 +57,48 @@ test1 %>%
     coord_flip()
 
 
+#######################
+# TF-IDF Testing      #
+#######################
+word_count <- test1 %>%
+    count(Document.ID, word, sort = TRUE) %>%
+    ungroup()
 
+word_total <- word_count %>% 
+    group_by(Document.ID) %>% 
+    summarize(total = sum(n))
+
+words <- left_join(word_count, word_total)
+
+words_tf_idf <- words %>%
+    bind_tf_idf(word, Document.ID, n)
+
+testing <- words_tf_idf %>%
+    filter(total > 8000) %>%
+    count(Document.ID)
+
+words_tf_idf %>%
+    filter(total > 8000) %>%
+    arrange(desc(tf_idf)) %>%
+    mutate(word = factor(word, levels = rev(unique(word)))) %>% 
+    group_by(Document.ID) %>% 
+    top_n(15) %>% 
+    ungroup %>%
+    ggplot(aes(word, tf_idf, fill = Document.ID)) +
+    geom_col(show.legend = FALSE) +
+    labs(x = NULL, y = "tf-idf") +
+    facet_wrap(~Document.ID, ncol = 2, scales = "free") +
+    coord_flip()
+
+##############################
+# Sentiment Analysis Testing #
+##############################
 nrc_joy <- get_sentiments("nrc") %>% 
     filter(sentiment == "joy")
 
 test_sentiment <- test1 %>%
     inner_join(get_sentiments("bing")) %>%
-    count(Document.ID, index = Page.Number %/% 80, sentiment) %>%
+    count(Document.ID, Page.Number, sentiment) %>%
     spread(sentiment, n, fill = 0) %>%
     mutate(sentiment = positive - negative) %>%
     filter(abs(sentiment)>200)
@@ -67,7 +113,7 @@ test_sentiment <- test1 %>%
     spread(sentiment, n, fill = 0) %>%
     mutate(sentiment = positive - negative)
 
-ggplot(jane_austen_sentiment, aes(index, sentiment)) +
+ggplot(jane_austen_sentiment, aes(Page.Number, sentiment)) +
     geom_col(show.legend = FALSE) 
 
 bing_word_counts <- test1 %>%
