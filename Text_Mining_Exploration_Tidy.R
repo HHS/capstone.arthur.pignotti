@@ -4,6 +4,8 @@
 .libPaths( c("C:/R/Packages", .libPaths()) ) #add extra library location
 setwd("C:/Users/P6BQ/Desktop/capstone.arthur.pignotti") #local location of github repo
 
+
+
 ############################
 # Create Corpus Using Tidy #
 ############################
@@ -14,7 +16,7 @@ library(dplyr)
 library(stringr)
 library(ggplot2)
 library(tidytext)
-library(tidyr)
+library(tidyverse)
 
 data(stop_words)
 test <- commentsDf %>%
@@ -23,44 +25,52 @@ test <- commentsDf %>%
     ungroup()
 
 
-test1 <- test %>%
+comment.words <- test %>%
     unnest_tokens(word, Text)
 
-test1 <- test1 %>%
+comment.words <- comment.words %>%
     anti_join(stop_words)
 
-cms_stop <- data.frame(word = c("cms","medicare","ma", "plan", "care", "beneficiaries", "advantage", "proposed", "rule", "health", "plans"), stringsAsFactors = FALSE)
+cms_stop <- data.frame(word = c("cms","medicare","ma", "plan", "care", "beneficiaries", "advantage", "proposed", "rule", "health", "plans", "md", "baltimore", "seema", "verma", "washington", "dc", "boulevardbaltimore"), stringsAsFactors = FALSE)
 
-test1 <- test1 %>%
+comment.words <- comment.words %>%
     anti_join(cms_stop)
 
 #######################
 # Spell Check Testing #
 #######################
 library(hunspell)
-spell.test <- hunspell_find(test1$word)
-str(spell.test)
-spell.test1 <- unique(spell.test)
-spell.count <- as.data.frame(spell.test1)
+comment.words <- comment.words %>%
+    filter(!(str_detect(word, regex("^http"))),
+           !(str_detect(word, regex("^www"))))
 
-test1 %>%
-    count(word, sort = TRUE) %>%
-    filter(n > 4000) %>%
-    mutate(word = reorder(word, n)) %>%
-    ggplot(aes(word, n)) +
+spell.test <- hunspell_find(comment.words$word)
+spell.suggest <- hunspell_su(comment.words$word)
+spell.count <- as.data.frame(matrix(unlist(spell.test), byrow = TRUE))
+spell.suggest <- hunspell_su(spell.count$V1)
+
+spell.count %>%
+    count(V1, sort = TRUE) %>%
+    filter(n <= 30 & n >= 25) %>%
+    #summarise(sum(n))
+    mutate(V1 = reorder(V1, n)) %>%
+    ggplot(aes(V1, n)) +
     geom_col() +
     xlab(NULL) +
     coord_flip()
 
-test1 %>%
-    group_by(Type, word) %>%
-    summarise(counts = n()) %>%
-    filter(Type == "Health Plan", counts > 250) %>%
-    mutate(word = reorder(word, counts)) %>%
-    ggplot(aes(word, counts)) +
-    geom_col() +
-    xlab(NULL) +
-    coord_flip()
+misspelled <- spell.count %>%
+    count(V1, sort = TRUE) %>%
+    mutate(V1 = reorder(V1, n))
+
+misspell.find <- comment.words %>%
+    filter(str_detect(word, regex("affordabilityimplementation")))
+
+comment.words$word <- str_replace_all(comment.words$word, "ahcancal", "ahca/ncal")
+comment.words$word <- str_replace_all(comment.words$word, regex("[a-zA-Z].[a-zA-Z]"), "measure level")
+
+write.csv(misspelled, file = "Data/misspelled.csv", row.names = FALSE)
+write.csv(misspell.find, file = "Data/misspellTest.csv", row.names = FALSE)
 
 
 #######################
@@ -78,10 +88,6 @@ words <- left_join(word_count, word_total)
 
 words_tf_idf <- words %>%
     bind_tf_idf(word, Document.ID, n)
-
-testing <- words_tf_idf %>%
-    filter(total > 8000) %>%
-    count(Document.ID)
 
 words_tf_idf %>%
     filter(total > 8000) %>%
