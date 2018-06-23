@@ -12,7 +12,8 @@ library(tidyverse)
 library(hunspell)
 
 #Load comment data
-commentsDf <- read.csv("Data/commentsDf.csv", stringsAsFactors = FALSE)
+commentsDf <- read.csv("Data/commentsDf.csv",
+                       stringsAsFactors = FALSE)
 
 
 
@@ -22,11 +23,11 @@ commentsDf <- read.csv("Data/commentsDf.csv", stringsAsFactors = FALSE)
 data(stop_words)
 
 #Load CMS-specific stop words
-cms_stop <- data.frame(word = c("cms","medicare","ma", "plan", "care", "beneficiaries", "advantage", "proposed", "rule", "health", "plans", "md", "baltimore", "seema", "verma", "washington", "dc", "boulevardbaltimore"), stringsAsFactors = FALSE)
+cms_stop <- data.frame(word = c("CMS","Medicare","MA", "plan", "care", "beneficiaries", "Advantage", "proposed", "rule", "health", "plans", "MD", "Baltimore", "Seema", "Verma", "Washington", "DC", "boulevardbaltimore"), stringsAsFactors = FALSE)
 
 #Unnest tokens and removd stop words
 comment.words <- commentsDf %>%
-    unnest_tokens(word, Text) %>%
+    unnest_tokens(word, Text, to_lower = FALSE) %>%
     anti_join(stop_words) %>%
     anti_join(cms_stop) %>%
     filter(!(str_detect(word, regex("^http"))),
@@ -46,8 +47,6 @@ spell.count.unique <- as.data.frame(matrix(unique(unlist(spell.find)),
                                            byrow = TRUE), 
                                     stringsAsFactors = FALSE)
 
-#test <- data.frame(v1 = unlist(spell.test), check.names = FALSE)
-
 spell.suggest <- hunspell_suggest(spell.count.unique$V1)
 
 #Function to find the most amount of elements in a list
@@ -63,10 +62,11 @@ elementMax <- function(list){
 
 #Create blank data.frame to input spelling suggestions into
 spell.suggest.df <- data.frame(word = matrix(unlist(spell.count.unique), byrow = TRUE),
-                               matrix(nrow = length(spell.suggest), ncol = elementMax(spell.suggest)))
+                               matrix(nrow = length(spell.suggest),
+                                      ncol = elementMax(spell.suggest)))
 
 #Put spelling suggestions into a data frame
-for (i in 1:14772){
+for (i in 1:14652){
     if (length(spell.suggest[[i]]) != 0){
         for (j in 1:length(spell.suggest[[i]])){
             spell.suggest.df[i, j+1] = spell.suggest[[i]][j]
@@ -105,6 +105,10 @@ spell.count.overall$n.y <- spell.count.overall$n.y %>%
 spell.count.overall <- spell.count.overall %>%
     mutate(percent.misspelled = n.y/n.x) %>%
     arrange(desc(percent.misspelled))
+
+write.csv(spell.count.overall,
+          file = "Data/spellCheckMetric.csv", 
+          row.names = FALSE)
 
 spell.count.overall %>%
     ggplot(aes(x = percent.misspelled)) +
