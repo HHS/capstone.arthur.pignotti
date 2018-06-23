@@ -1,82 +1,39 @@
-#####################
-# Initial Setup     #
-#####################
+#### Initial Setup ####
+
 .libPaths( c("C:/R/Packages", .libPaths()) ) #add extra library location
 setwd("C:/Users/P6BQ/Desktop/capstone.arthur.pignotti") #local location of github repo
 
-
-
-############################
-# Create Corpus Using Tidy #
-############################
-
-commentsDf <- read.csv("Data/commentsDf.csv", stringsAsFactors = FALSE)
-
+#Load libraries
 library(dplyr)
 library(stringr)
 library(ggplot2)
 library(tidytext)
 library(tidyverse)
 
+#Load comment data
+commentsDf <- read.csv("Data/commentsDf.csv", stringsAsFactors = FALSE)
+
+
+#### Create Corpus Using Tidy ####
+
+#Load stop words
 data(stop_words)
-test <- commentsDf %>%
-    group_by(Document.ID) %>%
-    mutate(linenumber = row_number()) %>%
-    ungroup()
 
-
-comment.words <- test %>%
-    unnest_tokens(word, Text)
-
-comment.words <- comment.words %>%
-    anti_join(stop_words)
-
+#Load CMS-specific stop words
 cms_stop <- data.frame(word = c("cms","medicare","ma", "plan", "care", "beneficiaries", "advantage", "proposed", "rule", "health", "plans", "md", "baltimore", "seema", "verma", "washington", "dc", "boulevardbaltimore"), stringsAsFactors = FALSE)
 
-comment.words <- comment.words %>%
-    anti_join(cms_stop)
-
-#######################
-# Spell Check Testing #
-#######################
-library(hunspell)
-comment.words <- comment.words %>%
+#Unnest tokens and removd stop words
+comment.words <- commentsDf %>%
+    unnest_tokens(word, Text) %>%
+    anti_join(stop_words) %>%
+    anti_join(cms_stop) %>%
     filter(!(str_detect(word, regex("^http"))),
            !(str_detect(word, regex("^www"))))
 
-spell.test <- hunspell_find(comment.words$word)
-spell.suggest <- hunspell_su(comment.words$word)
-spell.count <- as.data.frame(matrix(unlist(spell.test), byrow = TRUE))
-spell.suggest <- hunspell_su(spell.count$V1)
-
-spell.count %>%
-    count(V1, sort = TRUE) %>%
-    filter(n <= 30 & n >= 25) %>%
-    #summarise(sum(n))
-    mutate(V1 = reorder(V1, n)) %>%
-    ggplot(aes(V1, n)) +
-    geom_col() +
-    xlab(NULL) +
-    coord_flip()
-
-misspelled <- spell.count %>%
-    count(V1, sort = TRUE) %>%
-    mutate(V1 = reorder(V1, n))
-
-misspell.find <- comment.words %>%
-    filter(str_detect(word, regex("affordabilityimplementation")))
-
-comment.words$word <- str_replace_all(comment.words$word, "ahcancal", "ahca/ncal")
-comment.words$word <- str_replace_all(comment.words$word, regex("[a-zA-Z].[a-zA-Z]"), "measure level")
-
-write.csv(misspelled, file = "Data/misspelled.csv", row.names = FALSE)
-write.csv(misspell.find, file = "Data/misspellTest.csv", row.names = FALSE)
 
 
-#######################
-# TF-IDF Testing      #
-#######################
-word_count <- test1 %>%
+#### TF-IDF Testing ####
+word_count <- comment.words %>%
     count(Document.ID, word, sort = TRUE) %>%
     ungroup()
 
@@ -106,9 +63,9 @@ library(tm)
 words_dtm <- cast_dtm(words_tf_idf, document = Document.ID, term = word, value = tf_idf)
 
 
-#######################
-# Bigram Testing      #
-#######################
+
+#### Bigram Testing ####
+
 bigram_count <- test %>%
     unnest_tokens(bigram, Text, token = "ngrams", n = 2) %>%
     separate(bigram, c("word1", "word2"), sep = " ") %>%
@@ -146,9 +103,9 @@ bigram_tf_idf %>%
     coord_flip()
 
 
-####################
-# Network Graph    #
-####################
+
+#### Network Graph ####
+
 
 library(igraph)
 library(ggraph)
@@ -173,9 +130,9 @@ ggraph(bigram_graph, layout = "fr") +
     theme_void()
 
 
-##########################
-# Pairwaise Correlations #
-##########################
+
+#### Pairwaise Correlations ####
+
 
 library(widyr)
 
@@ -196,9 +153,9 @@ word_cors %>%
     facet_wrap(~ item1, scales = "free") +
     coord_flip()
 
-##############################
-# Sentiment Analysis Testing #
-##############################
+
+#### Sentiment Analysis Testing ####
+
 nrc_joy <- get_sentiments("nrc") %>% 
     filter(sentiment == "joy")
 
