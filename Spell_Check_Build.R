@@ -81,6 +81,7 @@ spell.find.df <- data.frame(Document.ID = comment.words$Document.ID,
                             misspell = matrix(nrow = dim(comment.words)[1], ncol = 1))
 
 #Put spelling find results into a data frame
+
 for (i in 1:length(spell.find)){
     if (length(spell.find[[i]]) != 0){
         spell.find.df[i, 3] = spell.find[[i]][1]
@@ -119,12 +120,31 @@ spell.count.overall %>%
     ggplot(aes(x = n.x)) +
     geom_density()
 
+spell.count.overall %>%
+    ggplot(aes(x = n.x)) +
+    geom_density()
+
+spell.count.hist <- spell.count.overall %>%
+    group_by(n.x) %>%
+    count() %>%
+    ungroup()
+
 median(spell.count.overall$n.x)
 mean(spell.count.overall$n.x)
 
 test <- comment.words %>%
     group_by(Document.ID) %>%
     count()
+
+#### Check for word cutoff ####
+count.check <- commentsDf %>%
+    inner_join(spell.count.overall) %>%
+    arrange(n.x) %>%
+    select(Document.ID, Text, n.x, n.y, percent.misspelled)
+
+write.csv(count.check, file = "Data/countCheck.csv", row.names = FALSE)    
+
+filter(word(Document.ID, -1, sep = "-"))
 
 #Visualize counts of misspelling
 spell.count %>%

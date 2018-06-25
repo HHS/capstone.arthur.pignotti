@@ -1,8 +1,9 @@
-#####################
-# Initial Setup     #
-#####################
+#### Initial Setup ####
+
 .libPaths( c("C:/R/Packages", .libPaths()) ) #add extra library location
 setwd("C:/Users/P6BQ/Desktop/capstone.arthur.pignotti") #local location of github repo
+
+#Load libraries
 library(tidyverse)
 library(readxl)
 library(tidytext)

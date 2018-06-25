@@ -74,5 +74,20 @@ commentsDf <- comments %>%
     left_join(map, by = c("Comment.ID" = "Document")) %>%
     union(attachExtract)
 
+wordcount <- function(str) {
+    sapply(gregexpr("\\b\\W+\\b", str, perl=TRUE), function(x) sum(x>0) ) + 1 
+}
 
+#### Filter Out Message Comments Onlt Referencing Attachments Comments
+# Create test file to review and find word count cutoff
+testComment <- commentsDf %>%
+    filter(!(word(Document.ID, -1, sep = "-") == "0" & str_detect(tolower(Text), "attached")))
+
+write.csv(testComment, file = "Data/testAttacted.csv")
+
+# Apply word filter with word count cutoff
+testComment <- commentsDf %>%
+    filter(!((word(Document.ID, -1, sep = "-") == "0" & str_detect(tolower(Text), "attached")) & wordcount(Text) < 150))
+
+#### Export Cleaned File for Text Mining
 write.csv(commentsDf, file = "Data/commentsDf.csv", row.names = FALSE)
