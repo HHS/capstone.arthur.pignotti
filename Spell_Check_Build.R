@@ -113,12 +113,14 @@ write.csv(spell.count.overall,
 
 spell.count.overall %>%
     ggplot(aes(x = percent.misspelled)) +
-    geom_density()
+    labs(x = "Percent Misspelled", y = "Count") +
+    geom_histogram()
 
 spell.count.overall %>%
-    filter(n.x < 2000) %>%
+    filter(n.x < 1500) %>%
     ggplot(aes(x = n.x)) +
-    geom_density()
+    labs(x = "Number of Words", y = "Count") +
+    geom_histogram(bins = 50)
 
 spell.count.overall %>%
     ggplot(aes(x = n.x)) +
