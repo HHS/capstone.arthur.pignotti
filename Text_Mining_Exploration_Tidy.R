@@ -1,5 +1,4 @@
 #### Initial Setup ####
-
 .libPaths( c("C:/R/Packages", .libPaths()) ) #add extra library location
 setwd("C:/Users/P6BQ/Desktop/capstone.arthur.pignotti") #local location of github repo
 
@@ -20,7 +19,7 @@ commentsDf <- read.csv("Data/commentsDf.csv", stringsAsFactors = FALSE)
 data(stop_words)
 
 #Load CMS-specific stop words
-cms_stop <- data.frame(word = c("cms","medicare","ma", "plan", "care", "beneficiaries", "advantage", "proposed", "rule", "health", "plans", "md", "baltimore", "seema", "verma", "washington", "dc", "boulevardbaltimore"), stringsAsFactors = FALSE)
+cms_stop <- read_csv("Data/cms_stop_words.csv")
 
 #Unnest tokens and removd stop words
 comment.words <- commentsDf %>%
@@ -56,7 +55,7 @@ words_tf_idf %>%
     ggplot(aes(word, tf_idf, fill = Document.ID)) +
     geom_col(show.legend = FALSE) +
     labs(x = NULL, y = "tf-idf") +
-    facet_wrap(~Document.ID, ncol = 2, scales = "free") +
+    facet_wrap(~Document.ID, ncol = 3, scales = "free") +
     coord_flip()
 
 library(tm)
@@ -66,12 +65,20 @@ words_dtm <- cast_dtm(words_tf_idf, document = Document.ID, term = word, value =
 
 #### Bigram Testing ####
 
-bigram_count <- test %>%
+bigram_count <- commentsDf %>%
     unnest_tokens(bigram, Text, token = "ngrams", n = 2) %>%
     separate(bigram, c("word1", "word2"), sep = " ") %>%
     filter(!word1 %in% stop_words$word) %>%
     filter(!word2 %in% stop_words$word) %>% 
     count(Document.ID, word1, word2, sort = TRUE) %>%
+    unite(bigram, word1, word2, sep = " ")
+
+bigram_phrase_count <- commentsDf %>%
+    unnest_tokens(bigram, Text, token = "ngrams", n = 2) %>%
+    separate(bigram, c("word1", "word2"), sep = " ") %>%
+    filter(!word1 %in% stop_words$word) %>%
+    filter(!word2 %in% stop_words$word) %>% 
+    count(word1, word2, sort = TRUE) %>%
     unite(bigram, word1, word2, sep = " ")
 
 bigram_total <- bigram_count %>% 

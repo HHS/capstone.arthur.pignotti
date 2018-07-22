@@ -36,7 +36,6 @@ comment.words <- commentsDf %>%
 
 
 #### Spell Check Testing ####
-
 spell.find <- hunspell_find(comment.words$word)
 
 spell.count <- as.data.frame(matrix(unlist(spell.find)),
@@ -81,7 +80,6 @@ spell.find.df <- data.frame(Document.ID = comment.words$Document.ID,
                             misspell = matrix(nrow = dim(comment.words)[1], ncol = 1))
 
 #Put spelling find results into a data frame
-
 for (i in 1:length(spell.find)){
     if (length(spell.find[[i]]) != 0){
         spell.find.df[i, 3] = spell.find[[i]][1]

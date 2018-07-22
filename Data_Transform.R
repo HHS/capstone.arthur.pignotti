@@ -1,6 +1,4 @@
-#####################
-# Initial Setup     #
-#####################
+#### Initial Setup ####
 .libPaths( c("C:/R/Packages", .libPaths()) ) #add extra library location
 setwd("C:/Users/P6BQ/Desktop/capstone.arthur.pignotti") #local location of github repo
 
@@ -11,25 +9,9 @@ library(tm)
 library(readxl)
 library(tidyverse)
 
+source("helper_functions.R")
 
-########################
-# Convert PDFs         #
-########################
-
-attachLoc <- "C:/Data/Comments/CMS-2017-0163/FDMS/files"
-pdfCnt <- length(list.files(path = "files/", pattern = "pdf")) #number of PDFs
-docCnt <- length(list.files(path = "files/", pattern = "doc")) #number of Docs
-
-
-
-
-pdfCnt <- length(list.files(path = "files/", pattern = "pdf",  full.names = TRUE)) #get list of PDFs
-mycorpus <- Corpus(DirSource(attachLoc, pattern = "pdf"))
-
-
-########################
-# Load Raw Datasets    #
-########################
+#### Load Raw Datasets ####
 comLoc <- "C:/Data/Comments/Testing"
 
 #Comment Report from FDMS
@@ -54,9 +36,7 @@ colnames(attachExtract) <- make.names(colnames(attachExtract))
 comReport$Site_Key <- substring(comReport$Email.Address, regexpr("@", comReport$Email.Address) + 1)
 
 
-########################
-# Load Text Extract    #
-########################
+#### Load Text Extract ####
 attachExtract <- attachExtract %>%
     mutate(Comment.ID = substr(File.Name,1,18),
            Document.ID = substr(File.Name, 1, regexpr("\\.", File.Name) - 1)) %>%
@@ -74,11 +54,8 @@ commentsDf <- comments %>%
     left_join(map, by = c("Comment.ID" = "Document")) %>%
     union(attachExtract)
 
-wordcount <- function(str) {
-    sapply(gregexpr("\\b\\W+\\b", str, perl=TRUE), function(x) sum(x>0) ) + 1 
-}
 
-#### Filter Out Message Comments Onlt Referencing Attachments Comments
+#### Filter Out Message Comments Only Referencing Attachments Comments ####
 # Create test file to review and find word count cutoff
 testComment <- commentsDf %>%
     filter(!(word(Document.ID, -1, sep = "-") == "0" & str_detect(tolower(Text), "attached")))

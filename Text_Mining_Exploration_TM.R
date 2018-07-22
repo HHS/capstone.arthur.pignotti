@@ -1,6 +1,8 @@
 ##########################
 # Create Corpus Using TM #
 ##########################
+
+
 mycorpus = Corpus(VectorSource(comments$commentText)) 
 commentsDf <- data.frame(paste(comments$documentId,"-0",sep=""), comments$commentText, stringsAsFactors = FALSE)
 colnames(commentsDf) <- c("doc_id","text")
