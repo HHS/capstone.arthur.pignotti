@@ -19,3 +19,11 @@ docCnt <- length(list.files(path = "files/", pattern = "doc")) #number of Docs
 pdfCnt <- length(list.files(path = "files/", pattern = "pdf",  full.names = TRUE)) #get list of PDFs
 mycorpus <- Corpus(DirSource(attachLoc, pattern = "pdf"))
 
+
+# Clean up?
+nrow(attachList)
+write.csv(attachList, file="test.csv")
+attachUrl = "https://www.regulations.gov/contentStreamer?documentId=CMS-2017-0163-1203&disposition=attachment&attachmentNumber=1"
+test <- HEAD(attachUrl)
+file <- substr(tmp, 23, nchar(tmp)-1)
+download.file(attachUrl, paste("files/",  attachList[comment, "documentId"], "-", doc, " - " , file, sep = ""), mode="wb")

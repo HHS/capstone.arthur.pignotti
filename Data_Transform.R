@@ -30,7 +30,7 @@ map <- read_excel(paste0(comLoc, "/map.xlsx"))
 colnames(map) <- make.names(colnames(map))
 
 #Text Extract of Comment Attachments
-attachExtract <- read_excel("Data/CMS-2017-0156-TExtract.xlsx")
+attachExtract <- read_excel("Data/CMS-2017-0163-TExtract.xlsx")
 colnames(attachExtract) <- make.names(colnames(attachExtract))
 
 comReport$Site_Key <- substring(comReport$Email.Address, regexpr("@", comReport$Email.Address) + 1)

@@ -18,7 +18,7 @@ library(tidyverse)
 #####################
 # API Data Call     #
 #####################
-dktid = "CMS-2017-0156"
+dktid = "CMS-2017-0163"
 api_key = "bbPnmY2FqvoazRuHseN0liEsWh0qI255CgJTsPAo"
 
 #API call to get the number of record calls needs. API limits pull to 1000 records
@@ -68,11 +68,3 @@ for (comment in 1:nrow(attachList)){
     }
 }
 
-
-# Clean up?
-nrow(attachList)
-write.csv(attachList, file="test.csv")
-attachUrl = "https://www.regulations.gov/contentStreamer?documentId=CMS-2017-0163-1203&disposition=attachment&attachmentNumber=1"
-test <- HEAD(attachUrl)
-file <- substr(tmp, 23, nchar(tmp)-1)
-download.file(attachUrl, paste("files/",  attachList[comment, "documentId"], "-", doc, " - " , file, sep = ""), mode="wb")

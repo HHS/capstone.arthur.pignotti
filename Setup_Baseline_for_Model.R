@@ -38,6 +38,9 @@ baseline <- baselineDoc %>%
     anti_join(cms_stop) %>%
     mutate(word = wordStem(word))
 
+baseline <- baseline %>%
+    filter(Paragraph.Number < 626 | Paragraph.Number > 695)
+
 base_count <- baseline %>%
     group_by(section) %>%
     count(section, word, sort = TRUE) %>%
@@ -59,16 +62,51 @@ base_lda <- LDA(base_dtm,
                 k = length(unique(base$section)),
                 control = list(seed = 1234))
 
+save(base_lda, file = "Models/lda_test.rda")
+
 base_topics <- tidy(base_lda, matrix = "beta")
+base_doc_topics <- tidy(base_lda, matrix = "gamma")
+
+write.csv(base_doc_topics, file="modelingtest.csv")
+
+#### Create Topic Map ####
+topic_map1 <- base_doc_topics %>%
+    group_by(document) %>%
+    filter(gamma == max(gamma))
+
+topic_map2 <- base_doc_topics %>%
+    group_by(topic) %>%
+    filter(gamma == max(gamma))
+
+topic_map <- rbind(topic_map1, topic_map2) %>%
+    distinct() %>%
+    select(-gamma)
+
+write.csv(topic_map, file = "Models/topic_map.csv", row.names = FALSE)
+
+#### Testing ####
+
+test <- base_doc_topics %>%
+    group_by(document) %>%
+    filter(gamma == max(gamma))
+
+count <- test %>%
+    filter(gamma < .75) %>%
+    arrange(desc(gamma))
+
+multi <- base_doc_topics %>%
+    filter(gamma > .001) %>%
+    group_by(topic) %>%
+    count() %>%
+    filter(n > 1)
 
 
 
-train.topics <- topics(base_lda)
 
-test.topics <- posterior(base_lda, base_dtm)
-test <- apply(test.topics$topics, 1, which.max)
-
-
+test1 <- base_doc_topics %>%
+    group_by(topic) %>%
+    filter(gamma == max(gamma))
+write.csv(test1, file="modelingtesttopics.csv")
 
 
 model_top_terms <- base_topics %>%
@@ -76,6 +114,10 @@ model_top_terms <- base_topics %>%
     top_n(10, beta) %>%
     ungroup() %>%
     arrange(topic, -beta)
+
+
+write.csv(model_top_terms, file="Data/modelingtopterms.csv")
+
 
 model_top_terms %>%
     mutate(term = reorder(term, beta)) %>%
