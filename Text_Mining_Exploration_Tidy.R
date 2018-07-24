@@ -87,11 +87,17 @@ load("Models/lda_test.rda")
 topic_map <- read.csv(file = "Models/topic_map.csv")
 
 words_dtm.topics <- posterior(base_lda, words_dtm)
+
 words_scoring <- as.data.frame(cbind(Document.ID = rownames(words_dtm.topics$topics),
                             words_dtm.topics$topics)) %>%
-    gather(key = "Topic", value = "Score", 2:80) %>%
+    gather(key = "Topic", value = "Score", 2:71) %>%
     mutate(Topic = as.numeric(Topic)) %>%
-    right_join(topic_map, by = c("Topic" = "topic"))
+    right_join(base_doc_topics, by = c("Topic" = "topic")) %>%
+    mutate(final_score = as.numeric(Score) * gamma) %>%
+    group_by(Document.ID, document) %>%
+    summarise(sum = sum(final_score)) %>%
+    arrange(-sum) %>%
+    ungroup()
 
 write.csv(words_scoring, file = "Data/scoring.csv", row.names = FALSE)
 
