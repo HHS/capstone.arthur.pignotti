@@ -8,6 +8,10 @@ library(stringr)
 library(ggplot2)
 library(tidytext)
 library(tidyverse)
+library(SnowballC)
+library(tm)
+library(topicmodels)
+library(quanteda)
 
 #Load comment data
 commentsDf <- read.csv("Data/commentsDf.csv", stringsAsFactors = FALSE)
@@ -30,9 +34,26 @@ comment.words <- commentsDf %>%
            !(str_detect(word, regex("^www")))) %>%
     mutate(word = wordStem(word))
 
+comment.bigrams <- commentsDf %>%
+    unnest_tokens(bigram, Text, token = "ngrams", n = 2) %>%
+    separate(bigram, c("word1", "word2"), sep = " ") %>%
+    anti_join(stop_words, by = c("word1" = "word")) %>%
+    anti_join(stop_words, by = c("word2" = "word")) %>%
+    anti_join(cms_stop, by = c("word1" = "word")) %>%
+    anti_join(cms_stop, by = c("word2" = "word")) %>%
+    filter(!(str_detect(word1, regex("^http"))),
+           !(str_detect(word1, regex("^www"))),
+           !(str_detect(word2, regex("^http"))),
+           !(str_detect(word2, regex("^www")))) %>%
+    mutate(word1 = wordStem(word1),
+           word2 = wordStem(word2)) %>%
+    unite(word, word1, word2, sep = " ") %>%
+    filter(word %in% bigram$word)
+
+comments <- union(comment.words, comment.bigrams)
 
 #### TF-IDF Testing ####
-word_count <- comment.words %>%
+word_count <- comments %>%
     count(Document.ID, word, sort = TRUE) %>%
     ungroup()
 
@@ -58,12 +79,10 @@ words_tf_idf %>%
     facet_wrap(~Document.ID, ncol = 3, scales = "free") +
     coord_flip()
 
-library(tm)
 words_dtm_tf_idf <- cast_dtm(words_tf_idf, document = Document.ID, term = word, value = tf_idf)
 words_dtm <- cast_dtm(word_count, document = Document.ID, term = word, value = n)
 
 #### Apply Base Model ####
-library(topicmodels)
 load("Models/lda_test.rda")
 topic_map <- read.csv(file = "Models/topic_map.csv")
 
@@ -78,7 +97,6 @@ write.csv(words_scoring, file = "Data/scoring.csv", row.names = FALSE)
 
 
 #### Convert to DFM ####
-library(quanteda)
 words_dfm <- cast_dfm(word_count, document = Document.ID, term = word, value = n)
 text_sim <- textstat_simil(words_dfm, margin = "documents", method = "cosine")
 words_sim <- as.data.frame( as.matrix(text_sim))

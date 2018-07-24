@@ -27,3 +27,11 @@ attachUrl = "https://www.regulations.gov/contentStreamer?documentId=CMS-2017-016
 test <- HEAD(attachUrl)
 file <- substr(tmp, 23, nchar(tmp)-1)
 download.file(attachUrl, paste("files/",  attachList[comment, "documentId"], "-", doc, " - " , file, sep = ""), mode="wb")
+#testUrl = paste("https://www.regulations.gov/contentStreamer?documentId=", attachList[1, "documentId"], "&disposition=attachment&attachmentNumber=", 1, sep ="")
+#test <- getURI(testUrl,header=TRUE,verbose=TRUE)
+
+
+#library(readxl)
+#library(rvest)
+#library(scrapeR)
+#library(tidyverse)

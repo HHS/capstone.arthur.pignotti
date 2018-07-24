@@ -2,10 +2,7 @@
 .libPaths( c("C:/R/Packages", .libPaths()) ) #add extra library location
 setwd("C:/Users/P6BQ/Desktop/capstone.arthur.pignotti") #local location of github repo
 
-dktid = "CMS-2017-0163"
-
-#libraries
-library(tm)
+# Load libraries
 library(readxl)
 library(tidyverse)
 
@@ -35,7 +32,6 @@ colnames(attachExtract) <- make.names(colnames(attachExtract))
 
 comReport$Site_Key <- substring(comReport$Email.Address, regexpr("@", comReport$Email.Address) + 1)
 
-
 #### Load Text Extract ####
 attachExtract <- attachExtract %>%
     mutate(Comment.ID = substr(File.Name,1,18),
@@ -63,7 +59,7 @@ testComment <- commentsDf %>%
 write.csv(testComment, file = "Data/testAttacted.csv")
 
 # Apply word filter with word count cutoff
-testComment <- commentsDf %>%
+commentsDf <- commentsDf %>%
     filter(!((word(Document.ID, -1, sep = "-") == "0" & str_detect(tolower(Text), "attached")) & wordcount(Text) < 150))
 
 #### Export Cleaned File for Text Mining

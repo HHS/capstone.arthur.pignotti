@@ -1,26 +1,17 @@
-#####################
-# Initial Setup     #
-#####################
+#### Initial Setup ####
 .libPaths( c("C:/R/Packages", .libPaths()) ) #add extra library location
 setwd("C:/Users/P6BQ/Desktop/capstone.arthur.pignotti") #local location of github repo
 
-
-#libraries
-library(tm)
-library(readxl)
-library(rvest)
-library(scrapeR)
-library(jsonlite)
-library(httr)
-library(tidyverse)
-
-
-#####################
-# API Data Call     #
-#####################
+# API parameters
 dktid = "CMS-2017-0163"
 api_key = "bbPnmY2FqvoazRuHseN0liEsWh0qI255CgJTsPAo"
 
+# Load libraries
+library(jsonlite)
+library(httr)
+library(stringr)
+
+#### API Data Call ####
 #API call to get the number of record calls needs. API limits pull to 1000 records
 countUrl = paste0("https://api.data.gov:443/regulations/v3/documents.json?api_key=",api_key,"&countsOnly=1&encoded=1&dct=PS&dktid=", dktid)
 recCount <- fromJSON(countUrl)
@@ -40,16 +31,12 @@ for (i in 1:pageCount){
 write.csv(comments, file = "Data/comments.csv", row.names = FALSE)
 
 
-########################
-# Download Attachments #
-########################
+#### Download Attachments ####
 attachList <- subset(comments, attachmentCount > 0)
 errflag = 1
 for (comment in 1:nrow(attachList)){
     for (doc in 1:attachList[comment, "attachmentCount"]){
         attachUrl = paste("https://www.regulations.gov/contentStreamer?documentId=", attachList[comment, "documentId"], "&disposition=attachment&attachmentNumber=", doc, sep ="")
-        #testUrl = paste("https://www.regulations.gov/contentStreamer?documentId=", attachList[1, "documentId"], "&disposition=attachment&attachmentNumber=", 1, sep ="")
-        #test <- getURI(testUrl,header=TRUE,verbose=TRUE)
         test <- HEAD(attachUrl)
         if (test$status_code==200){
             tmp <- test$headers$`content-disposition`
@@ -62,9 +49,10 @@ for (comment in 1:nrow(attachList)){
             errflag = errflag+1
         } else {
             errorLog[errflag, 1] = attachList[comment, "documentId"]
-            errorLog[errflag, 2] = error = test$status_code
+            errorLog[errflag, 2] = test$status_code
             errflag = errflag+1
         }
     }
 }
 
+write.csv(errorLog, file = "Data/attachmentDownloadErrorLog.csv", row.names = FALSE)

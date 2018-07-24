@@ -24,7 +24,24 @@ cms_stop <- read_csv("Data/cms_stop_words.csv")
 # Remove non-alpha-numeric characters
 baselineDoc$Text <- gsub("[^A-z0-9 ]", "", baselineDoc$Text)
 
-baseline <- baselineDoc %>%
+bigram <- baselineDoc %>%
+    select(Document.ID, Text) %>%
+    union(select(commentsDf, Document.ID, Text)) %>%
+    unnest_tokens(bigram, Text, token = "ngrams", n = 2) %>%
+    separate(bigram, c("word1", "word2"), sep = " ") %>%
+    anti_join(stop_words, by = c("word1" = "word")) %>%
+    anti_join(stop_words, by = c("word2" = "word")) %>%
+    anti_join(cms_stop, by = c("word1" = "word")) %>%
+    anti_join(cms_stop, by = c("word2" = "word")) %>%
+    mutate(word1 = wordStem(word1),
+           word2 = wordStem(word2)) %>%
+    count(word1, word2, sort = TRUE) %>%
+    unite(word, word1, word2, sep = " ") %>%
+    filter(n/length(unique(commentsDf$Comment.ID)) > .08)
+
+
+
+baselineDoc_section <- baselineDoc %>%
     group_by(Document.ID) %>%
     filter(Text != "",
            Paragraph.Number >= baseStart) %>%
@@ -32,14 +49,30 @@ baseline <- baselineDoc %>%
 #    mutate(section = cumsum(str_detect(Text, regex("^section [A-Z]", ignore_case = TRUE)))) %>%
     filter(str_count(Text, regex("[A-z]", ignore_case = TRUE))/str_count(Text, regex("[A-z0-9]", ignore_case = TRUE)) > .5) %>% # Removes lines that are 50% or more numbers
     fill(section) %>%
-    filter(!is.na(section)) %>%
+    filter(!is.na(section))
+
+baselineDoc_section <- baselineDoc_section %>%
+    filter(Paragraph.Number < 626 | Paragraph.Number > 695)
+
+baseline_unigram <- baselineDoc_section %>%
     unnest_tokens(word, Text) %>%
     anti_join(stop_words) %>%
     anti_join(cms_stop) %>%
     mutate(word = wordStem(word))
 
-baseline <- baseline %>%
-    filter(Paragraph.Number < 626 | Paragraph.Number > 695)
+baseline_bigram <- baselineDoc_section %>%
+    unnest_tokens(bigram, Text, token = "ngrams", n = 2) %>%
+    separate(bigram, c("word1", "word2"), sep = " ") %>%
+    anti_join(stop_words, by = c("word1" = "word")) %>%
+    anti_join(stop_words, by = c("word2" = "word")) %>%
+    anti_join(cms_stop, by = c("word1" = "word")) %>%
+    anti_join(cms_stop, by = c("word2" = "word")) %>%
+    mutate(word1 = wordStem(word1),
+           word2 = wordStem(word2)) %>%
+    unite(word, word1, word2, sep = " ") %>%
+    filter(word %in% bigram$word)
+
+baseline <- union(baseline_unigram, baseline_bigram)
 
 base_count <- baseline %>%
     group_by(section) %>%
@@ -67,7 +100,9 @@ save(base_lda, file = "Models/lda_test.rda")
 base_topics <- tidy(base_lda, matrix = "beta")
 base_doc_topics <- tidy(base_lda, matrix = "gamma")
 
-write.csv(base_doc_topics, file="modelingtest.csv")
+write.csv(base_doc_topics, file="modelingtest.csv", row.names = FALSE)
+
+
 
 #### Create Topic Map ####
 topic_map1 <- base_doc_topics %>%
@@ -106,17 +141,18 @@ multi <- base_doc_topics %>%
 test1 <- base_doc_topics %>%
     group_by(topic) %>%
     filter(gamma == max(gamma))
-write.csv(test1, file="modelingtesttopics.csv")
+write.csv(test1, file="modelingtesttopics.csv", row.names = FALSE)
 
 
 model_top_terms <- base_topics %>%
     group_by(topic) %>%
     top_n(10, beta) %>%
     ungroup() %>%
-    arrange(topic, -beta)
+    arrange(topic, -beta) %>%
+    inner_join(topic_map)
 
 
-write.csv(model_top_terms, file="Data/modelingtopterms.csv")
+write.csv(model_top_terms, file="Data/modelingtopterms.csv", row.names = FALSE)
 
 
 model_top_terms %>%
