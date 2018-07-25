@@ -105,18 +105,11 @@ write.csv(words_scoring, file = "Data/scoring.csv", row.names = FALSE)
 #### Convert to DFM ####
 words_dfm <- cast_dfm(word_count, document = Document.ID, term = word, value = n)
 text_sim <- textstat_simil(words_dfm, margin = "documents", method = "cosine")
-words_sim <- as.data.frame( as.matrix(text_sim))
-
-test <- subset(melt(words_sim), value!=1)
-head(test)
-
-install.packages("reshape")
 library(reshape)
 m <- as.matrix(text_sim)
 m2 <- melt(m)[melt(upper.tri(m))$value,]
-names(m2) <- c("c1", "c2", "distance")
-test <- as.data.frame(m2)
-head(test)
+names(m2) <- c("doc1", "doc2", "distance")
+
 write.csv(m2, file = "Data/similarity.csv", row.names = FALSE)
 
 #### Bigram Testing ####

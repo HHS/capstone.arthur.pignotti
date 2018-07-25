@@ -115,13 +115,24 @@ base_lda <- LDA(base_dtm,
 
 save(base_lda, file = "Models/lda_test.rda")
 
-base_topics <- tidy(base_lda, matrix = "beta")
+load("Models/lda_test.rda")
+
+base_topics_terms <- tidy(base_lda, matrix = "beta")
 base_doc_topics <- tidy(base_lda, matrix = "gamma")
 
-write.csv(base_topics, file="modelingtopicstest.csv", row.names = FALSE)
-write.csv(base_doc_topics, file="modelingtest.csv", row.names = FALSE)
+write.csv(base_topics_terms, file="Models/modelingTopicsTermsBeta.csv", row.names = FALSE)
+write.csv(base_doc_topics, file="Models/modelingDocsTopicsGamma.csv", row.names = FALSE)
 
-load("Models/lda_test.rda")
+docTopicTerms <- base_topics_terms %>%
+    inner_join(base_doc_topics, by = c("topic" = "topic")) %>%
+    group_by(document, term) %>%
+    summarise(final_beta = sum(beta)) %>%
+    ungroup() %>%
+    group_by(document) %>%
+    top_n(20, final_beta) %>%
+    ungroup()
+
+write.csv(docTopicTerms, file = "termTesting.csv", row.names = FALSE)
 
 #### Create Topic Map ####
 topic_map1 <- base_doc_topics %>%
