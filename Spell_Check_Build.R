@@ -1,5 +1,4 @@
 #### Initial Setup ####
-
 .libPaths( c("C:/R/Packages", .libPaths()) ) #add extra library location
 setwd("C:/Users/P6BQ/Desktop/capstone.arthur.pignotti") #local location of github repo
 
@@ -11,10 +10,11 @@ library(tidytext)
 library(tidyverse)
 library(hunspell)
 
+source("helper_functions.R")
+
 #Load comment data
 commentsDf <- read.csv("Data/commentsDf.csv",
                        stringsAsFactors = FALSE)
-
 
 
 #### Setup Corpus for Spell Check ####
@@ -48,17 +48,6 @@ spell.count.unique <- as.data.frame(matrix(unique(unlist(spell.find)),
 
 spell.suggest <- hunspell_suggest(spell.count.unique$V1)
 
-#Function to find the most amount of elements in a list
-elementMax <- function(list){
-    maxEl = 0
-    for (i in 1:length(list)){
-        if (length(list[[i]]) > maxEl) {
-            maxEl <- length(list[[i]])
-        }
-    }
-    return(maxEl)
-}
-
 #Create blank data.frame to input spelling suggestions into
 spell.suggest.df <- data.frame(word = matrix(unlist(spell.count.unique), byrow = TRUE),
                                matrix(nrow = length(spell.suggest),
@@ -72,7 +61,6 @@ for (i in 1:14652){
         }
     }
 }
-
 
 #Create blank data.frame to input spelling find results into
 spell.find.df <- data.frame(Document.ID = comment.words$Document.ID,
@@ -110,6 +98,7 @@ write.csv(spell.count.overall,
           row.names = FALSE)
 
 spell.count.overall %>%
+    filter(n.x > 10) %>%
     ggplot(aes(x = percent.misspelled)) +
     labs(x = "Percent Misspelled", y = "Count") +
     geom_histogram()
@@ -149,7 +138,7 @@ filter(word(Document.ID, -1, sep = "-"))
 #Visualize counts of misspelling
 spell.count %>%
     count(V1, sort = TRUE) %>%
-    filter(n <= 30 & n >= 25) %>%
+    filter(n >= 90) %>%
     mutate(V1 = reorder(V1, n)) %>%
     ggplot(aes(V1, n)) +
     geom_col() +

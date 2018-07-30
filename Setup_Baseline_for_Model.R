@@ -11,9 +11,10 @@ library(tidytext)
 library(tm)
 library(SnowballC)
 library(topicmodels)
+library(quanteda)
 
 baselineDoc <- read_excel("Data/AN_Part2 - V2.xlsx", sheet = 1)
-commentsDf <- read.csv("Data/commentsDf.csv", stringsAsFactors = FALSE)
+commentsDf <- read_csv("Data/commentsDf.csv")
 colnames(baselineDoc) <- make.names(colnames(baselineDoc))
 
 #Load stop words
@@ -25,24 +26,36 @@ cms_stop <- read_csv("Data/cms_stop_words.csv")
 # Remove non-alpha-numeric characters
 baselineDoc$Text <- gsub("[^A-z0-9 ]", "", baselineDoc$Text)
 
-
+# Add section column and removes lines paragraphs that are mostly numbers, which are generally parts of tables
 baselineDoc_section <- baselineDoc %>%
     group_by(Document.ID) %>%
     filter(Text != "",
            Paragraph.Number >= baseStart) %>%
     mutate(section = ifelse(str_detect(Text, regex("^section [A-Z]", ignore_case = TRUE)), Text, NA)) %>%
-#    mutate(section = cumsum(str_detect(Text, regex("^section [A-Z]", ignore_case = TRUE)))) %>%
     filter(str_count(Text, regex("[A-z]", ignore_case = TRUE))/str_count(Text, regex("[A-z0-9]", ignore_case = TRUE)) > .5) %>% # Removes lines that are 50% or more numbers
     fill(section) %>%
     filter(!is.na(section))
 
+# Remove table of contents for call letter
 baselineDoc_section <- baselineDoc_section %>%
     filter(Paragraph.Number < 626 | Paragraph.Number > 695)
 
+# Find sections w, probably not a real section
+section.count <- baselineDoc_section %>%
+    unnest_tokens(word, Text) %>%
+    group_by(section) %>%
+    count() %>%
+    filter(n < 10)
 
-bigram <- baselineDoc_section %>%
-    select(Document.ID, Text) %>%
-    union_all(select(commentsDf, Document.ID, Text)) %>%
+# Filter out sections with less than 10 words
+baselineDoc_section <- filter(baselineDoc_section, !section %in% section.count$section)
+
+word.count <- baselineDoc_section %>%
+    unnest_tokens(word, Text) %>%
+    count()
+
+bigram.baseline <- baselineDoc_section %>%
+    select(section, Document.ID, Text) %>%
     ungroup() %>%
     unnest_tokens(bigram, Text, token = "ngrams", n = 2) %>%
     separate(bigram, c("word1", "word2"), sep = " ") %>%
@@ -52,64 +65,76 @@ bigram <- baselineDoc_section %>%
     anti_join(cms_stop, by = c("word2" = "word")) %>%
     mutate(word1 = wordStem(word1),
            word2 = wordStem(word2)) %>%
-    unite(word, word1, word2, sep = " ") %>%
-    select(-Document.ID) %>%
-    count(word, sort = TRUE) %>%
-    filter(n/length(unique(commentsDf$Comment.ID)) > .08)
+    unite(word, word1, word2, sep = " ")
 
-bigram_index <- baselineDoc_section %>%
+bigram.section.count <- bigram.baseline %>%
+    count(section, word, sort = TRUE)
+
+bigram.section.total <- bigram.section.count %>% 
+    group_by(section) %>% 
+    summarize(total = sum(n))
+
+bigram.count <- bigram.baseline %>%
+    count(word, sort = TRUE)
+
+bigram <- left_join(bigram.section.count, bigram.section.total)
+
+bigram.tf_idf <- bigram %>%
+    bind_tf_idf(word, section, n) %>%
+    arrange(desc(tf_idf))
+
+bigram.list <- union(select(filter(bigram.count, n > 10), word),
+                     select(filter(bigram.tf_idf, n > 5 & tf_idf > .1), word)) %>%
+    distinct() %>%
+    arrange(word)
+
+write.csv(bigram.list, file = "Data/bigram_list2.csv", row.names = FALSE)
+
+bigram.index <- baselineDoc_section %>%
     unnest_tokens(bigram, Text, token = "ngrams", n = 2) %>%
     rowid_to_column("index1") %>%
-    inner_join(bigram, by = c("bigram" = "word")) %>%
+    inner_join(bigram.list, by = c("bigram" = "word")) %>%
     mutate(index2 = index1 + 1) %>%
     select(Document.ID, bigram, index1, index2)
 
-baseline_unigram <- baselineDoc_section %>%
+baseline.unigram <- baselineDoc_section %>%
     unnest_tokens(word, Text) %>%
     rowid_to_column("index") %>%
     filter(!(str_detect(word, regex("^http"))),
            !(str_detect(word, regex("^www")))) %>%
     anti_join(stop_words) %>%
     anti_join(cms_stop) %>%
-    anti_join(bigram_index, by = c("index" = "index1")) %>%
-    anti_join(bigram_index, by = c("index" = "index2")) %>%
+    anti_join(bigram.index, by = c("index" = "index1")) %>%
+    anti_join(bigram.index, by = c("index" = "index2")) %>%
     mutate(word = wordStem(word))
 
-baseline_bigram <- baselineDoc_section %>%
+baseline.bigram <- baselineDoc_section %>%
     unnest_tokens(bigram, Text, token = "ngrams", n = 2) %>%
-    rowid_to_column("index") %>%
     separate(bigram, c("word1", "word2"), sep = " ") %>%
-    anti_join(stop_words, by = c("word1" = "word")) %>%
-    anti_join(stop_words, by = c("word2" = "word")) %>%
-    anti_join(cms_stop, by = c("word1" = "word")) %>%
-    anti_join(cms_stop, by = c("word2" = "word")) %>%
     mutate(word1 = wordStem(word1),
            word2 = wordStem(word2)) %>%
     unite(word, word1, word2, sep = " ") %>%
-    filter(word %in% bigram$word)
+    filter(word %in% bigram.list$word)
 
-baseline <- union_all(baseline_unigram, baseline_bigram)
+baseline <- union_all(baseline.unigram, baseline.bigram)
 
-base_count <- baseline %>%
-    group_by(section) %>%
-    count(section, word, sort = TRUE) %>%
-    ungroup()
+baseline.count <- baseline %>%
+    count(section, word, sort = TRUE)
 
-base_total <- base_count %>% 
+baseline.total <- baseline.count %>% 
     group_by(section) %>% 
     summarize(total = sum(n))
 
-base <- left_join(base_count, base_total) %>%
-    filter(total > 5)
+base <- left_join(baseline.count, baseline.total)
 
-base_tf_idf <- base %>%
+baseline.tf_idf <- base %>%
     bind_tf_idf(word, section, n)
 
-base_dtm <- cast_dtm(base_tf_idf, section, word, n)
+baseline.dtm <- cast_dtm(baseline.tf_idf, section, word, n)
 
 length(unique(base$section))
 
-base_lda <- LDA(base_dtm,
+base_lda <- LDA(baseline.dtm,
                 k = 70,
                 control = list(seed = 1234))
 
@@ -117,14 +142,24 @@ save(base_lda, file = "Models/lda_test.rda")
 
 load("Models/lda_test.rda")
 
-base_topics_terms <- tidy(base_lda, matrix = "beta")
-base_doc_topics <- tidy(base_lda, matrix = "gamma")
+model.topic.term <- tidy(base_lda, matrix = "beta")
+model.doc.topic <- tidy(base_lda, matrix = "gamma")
+model.doc.term <- inner_join(model.topic.term, model.doc.topic, by = c("topic" = "topic")) %>%
+    mutate(score = beta * gamma) %>%
+    select(document, term, score) %>%
+    group_by(document, term) %>%
+    summarise(score = sum(score)) %>%
+    arrange(desc(score))
 
 write.csv(base_topics_terms, file="Models/modelingTopicsTermsBeta.csv", row.names = FALSE)
 write.csv(base_doc_topics, file="Models/modelingDocsTopicsGamma.csv", row.names = FALSE)
 
-docTopicTerms <- base_topics_terms %>%
-    inner_join(base_doc_topics, by = c("topic" = "topic")) %>%
+
+
+
+
+doc.topic.terms <- model.topic.term %>%
+    inner_join(model.doc.topic, by = c("topic" = "topic")) %>%
     group_by(document, term) %>%
     summarise(final_beta = sum(beta)) %>%
     ungroup() %>%
@@ -135,18 +170,37 @@ docTopicTerms <- base_topics_terms %>%
 write.csv(docTopicTerms, file = "termTesting.csv", row.names = FALSE)
 
 #### Create Topic Map ####
-topic_map1 <- base_doc_topics %>%
+topic.map1 <- model.doc.topic %>%
     group_by(document) %>%
     filter(gamma == max(gamma))
 
-topic_map2 <- base_doc_topics %>%
+topic.map2 <- model.doc.topic %>%
     group_by(topic) %>%
     filter(gamma == max(gamma))
 
-topic_map <- union_all(topic_map1, topic_map2) %>%
+topic.map <- union_all(topic.map1, topic.map2) %>%
     distinct()
 
-write.csv(topic_map, file = "Models/topic_map.csv", row.names = FALSE)
+write.csv(topic.map, file = "Models/topic_map.csv", row.names = FALSE)
+
+#### Test similarity of sections ####
+baseline.dfm <- cast_dfm(baseline.count,
+                         document = section,
+                         term = word,
+                         value = n)
+
+baseline.similarity <- textstat_simil(baseline.dfm,
+                                      margin = "documents",
+                                      method = "cosine") %>%
+    as.dist() %>%
+    tidy() %>%
+    arrange(desc(distance))
+
+names(baseline.similarity) <- c("doc1", "doc2", "distance")
+
+write.csv(baseline.similarity,
+          file = "Models/base_similarity_scores.csv",
+          row.names = FALSE)
 
 #### Testing ####
 
@@ -186,10 +240,3 @@ model_top_terms %>%
     geom_col(show.legend = FALSE) +
     facet_wrap(~ document, scales = "free") +
     coord_flip()
-
-beta_spread <- base_topics %>%
-    mutate(topic = paste0("topic", topic)) %>%
-    spread(topic, beta) %>%
-    filter(topic1 > .001 | topic2 > .001) %>%
-    mutate(log_ratio = log2(topic2 / topic1)) %>%
-    arrange(term, abs(log_ratio))

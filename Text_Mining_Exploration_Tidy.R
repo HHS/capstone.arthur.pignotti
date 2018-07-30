@@ -1,6 +1,7 @@
 #### Initial Setup ####
 .libPaths( c("C:/R/Packages", .libPaths()) ) #add extra library location
 setwd("C:/Users/P6BQ/Desktop/capstone.arthur.pignotti") #local location of github repo
+source("helper_functions.R")
 
 #Load libraries
 library(dplyr)
@@ -15,58 +16,60 @@ library(quanteda)
 
 #Load comment data
 commentsDf <- read.csv("Data/commentsDf.csv", stringsAsFactors = FALSE)
+bigram.list <- read.csv("Data/bigram_list2.csv", stringsAsFactors = FALSE)
 
 
 #### Create Corpus Using Tidy ####
-
 #Load stop words
 data(stop_words)
 
 #Load CMS-specific stop words
 cms_stop <- read_csv("Data/cms_stop_words.csv")
 
+# Remove non-alpha-numeric characters
+commentsDf$Text <- gsub("[^A-z0-9 ]", "", commentsDf$Text)
+
 #Unnest tokens and removd stop words
+comment.bigrams <- commentsDf %>%
+    unnest_tokens(word, Text, token = "ngrams", n = 2) %>%
+    filter(word %in% bigram.list$word)
+
+bigram.index <- commentsDf %>%
+    unnest_tokens(bigram, Text, token = "ngrams", n = 2) %>%
+    rowid_to_column("index1") %>%
+    inner_join(bigram.list, by = c("bigram" = "word")) %>%
+    mutate(index2 = index1 + 1) %>%
+    select(Document.ID, bigram, index1, index2)
+
 comment.words <- commentsDf %>%
     unnest_tokens(word, Text) %>%
-    anti_join(stop_words) %>%
-    anti_join(cms_stop) %>%
+    rowid_to_column("index") %>%
     filter(!(str_detect(word, regex("^http"))),
            !(str_detect(word, regex("^www")))) %>%
-    mutate(word = wordStem(word))
-
-comment.bigrams <- commentsDf %>%
-    unnest_tokens(bigram, Text, token = "ngrams", n = 2) %>%
-    separate(bigram, c("word1", "word2"), sep = " ") %>%
-    anti_join(stop_words, by = c("word1" = "word")) %>%
-    anti_join(stop_words, by = c("word2" = "word")) %>%
-    anti_join(cms_stop, by = c("word1" = "word")) %>%
-    anti_join(cms_stop, by = c("word2" = "word")) %>%
-    filter(!(str_detect(word1, regex("^http"))),
-           !(str_detect(word1, regex("^www"))),
-           !(str_detect(word2, regex("^http"))),
-           !(str_detect(word2, regex("^www")))) %>%
-    mutate(word1 = wordStem(word1),
-           word2 = wordStem(word2)) %>%
-    unite(word, word1, word2, sep = " ") %>%
-    filter(word %in% bigram$word)
+    anti_join(stop_words) %>%
+    anti_join(cms_stop) %>%
+    anti_join(bigram.index, by = c("index" = "index1")) %>%
+    anti_join(bigram.index, by = c("index" = "index2")) %>%
+    mutate(word = wordStem(word)) %>%
+    select(-index)
 
 comments <- union(comment.words, comment.bigrams)
 
 #### TF-IDF Testing ####
-word_count <- comments %>%
+comment.count <- comments %>%
     count(Document.ID, word, sort = TRUE) %>%
     ungroup()
 
-word_total <- word_count %>% 
+comment.total <- comment.count %>% 
     group_by(Document.ID) %>% 
     summarize(total = sum(n))
 
-words <- left_join(word_count, word_total)
+comment <- left_join(comment.count, comment.total)
 
-words_tf_idf <- words %>%
+comment.tf_idf <- comment %>%
     bind_tf_idf(word, Document.ID, n)
 
-words_tf_idf %>%
+comment.tf_idf %>%
     filter(total > 8000) %>%
     arrange(desc(tf_idf)) %>%
     mutate(word = factor(word, levels = rev(unique(word)))) %>% 
@@ -80,7 +83,30 @@ words_tf_idf %>%
     coord_flip()
 
 words_dtm_tf_idf <- cast_dtm(words_tf_idf, document = Document.ID, term = word, value = tf_idf)
+
 words_dtm <- cast_dtm(word_count, document = Document.ID, term = word, value = n)
+#### Convert to DFM and Calculate Similarity Matrices ####
+words_dfm <- cast_dfm(word_count, document = Document.ID, term = word, value = n)
+words_dfm_tf_idf <- cast_dfm(words_tf_idf, document = Document.ID, term = word, value = tf_idf)
+
+
+# Calculate similarity matrix and tidy it up
+similarity <- textstat_simil(words_dfm,
+                             margin = "documents",
+                             method = "cosine") %>%
+    as.dist() %>%
+    tidy() %>%
+    arrange(desc(distance))
+
+names(similarity) <- c("doc1", "doc2", "distance")
+head(similarity)
+
+similarity <- calcDocSim(words_dfm_tf_idf)
+
+count <- similarity %>%
+    filter(distance > .90)
+
+write.csv(similarity, file = "Data/similarity.csv", row.names = FALSE)
 
 #### Apply Base Model ####
 load("Models/lda_test.rda")
@@ -102,15 +128,6 @@ words_scoring <- as.data.frame(cbind(Document.ID = rownames(words_dtm.topics$top
 write.csv(words_scoring, file = "Data/scoring.csv", row.names = FALSE)
 
 
-#### Convert to DFM ####
-words_dfm <- cast_dfm(word_count, document = Document.ID, term = word, value = n)
-text_sim <- textstat_simil(words_dfm, margin = "documents", method = "cosine")
-library(reshape)
-m <- as.matrix(text_sim)
-m2 <- melt(m)[melt(upper.tri(m))$value,]
-names(m2) <- c("doc1", "doc2", "distance")
-
-write.csv(m2, file = "Data/similarity.csv", row.names = FALSE)
 
 #### Bigram Testing ####
 

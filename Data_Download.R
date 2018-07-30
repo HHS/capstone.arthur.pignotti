@@ -56,3 +56,7 @@ for (comment in 1:nrow(attachList)){
 }
 
 write.csv(errorLog, file = "Data/attachmentDownloadErrorLog.csv", row.names = FALSE)
+
+
+pathofvbscript = "Office_Macros/PDFConvert.vbs"
+shell(shQuote(normalizePath(pathofvbscript)), "cscript", flag = "//nologo")
