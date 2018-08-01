@@ -166,20 +166,35 @@ model.doc.term <- inner_join(model.topic.term, model.doc.topic, by = c("topic" =
 write.csv(model.doc.term, file="Models/modelingTopicsTermsBeta.csv", row.names = FALSE)
 write.csv(model.doc.topic, file="Models/modelingDocsTopicsGamma.csv", row.names = FALSE)
 
-
-
-
-
 doc.topic.terms <- model.topic.term %>%
     inner_join(model.doc.topic, by = c("topic" = "topic")) %>%
     group_by(document, term) %>%
-    summarise(final_beta = sum(beta)) %>%
+    summarise(final_beta = sum(beta*gamma)) %>%
     ungroup() %>%
     group_by(document) %>%
-    top_n(20, final_beta) %>%
+    top_n(100, final_beta) %>%
     ungroup()
 
-write.csv(docTopicTerms, file = "termTesting.csv", row.names = FALSE)
+write.csv(doc.topic.terms, file = "termTesting.csv", row.names = FALSE)
+
+#### Create Word Clouds of Basline Sections ####
+
+library(wordcloud)
+library(RColorBrewer)
+
+pal2 <- brewer.pal(8,"Dark2")
+for (i in 1:length(unique(doc.topic.terms$document))) {
+    doc <- unique(doc.topic.terms$document)[i]
+    subset <- doc.topic.terms %>%
+        filter(document == doc)
+    png(paste0("clouds/", doc,".png"), width=1280,height=800)
+    wordcloud(subset$term, 
+              subset$final_beta, 
+              scale=c(8,.3),
+              colors=pal2)
+    dev.off()
+}
+
 
 #### Create Topic Map ####
 topic.map1 <- model.doc.topic %>%

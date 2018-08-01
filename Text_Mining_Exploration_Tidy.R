@@ -87,8 +87,8 @@ words_dtm_tf_idf <- cast_dtm(comment.tf_idf, document = Document.ID, term = word
 
 words_dtm <- cast_dtm(comment.count, document = Document.ID, term = word, value = n)
 #### Convert to DFM and Calculate Similarity Matrices ####
-words_dfm <- cast_dfm(word_count, document = Document.ID, term = word, value = n)
-words_dfm_tf_idf <- cast_dfm(words_tf_idf, document = Document.ID, term = word, value = tf_idf)
+words_dfm <- cast_dfm(comment.count, document = Document.ID, term = word, value = n)
+words_dfm_tf_idf <- cast_dfm(comment.tf_idf, document = Document.ID, term = word, value = tf_idf)
 
 
 # Calculate similarity matrix and tidy it up
@@ -102,7 +102,7 @@ similarity <- textstat_simil(words_dfm,
 names(similarity) <- c("doc1", "doc2", "distance")
 head(similarity)
 
-similarity <- calcDocSim(words_dfm_tf_idf)
+#similarity <- calcDocSim(words_dfm_tf_idf)
 
 count <- similarity %>%
     filter(distance > .90)
@@ -200,7 +200,7 @@ library(igraph)
 library(ggraph)
 set.seed(2017)
 
-bigram_graph <- test %>%
+bigram_graph <- commentsDf %>%
     unnest_tokens(bigram, Text, token = "ngrams", n = 2) %>%
     separate(bigram, c("word1", "word2"), sep = " ") %>%
     filter(!word1 %in% stop_words$word) %>%
@@ -209,12 +209,17 @@ bigram_graph <- test %>%
     filter(n > 1000) %>%
     graph_from_data_frame()
 
-a <- grid::arrow(type = "closed", length = unit(.1, "inches"))
+sim_graph <- similarity %>%
+    filter(distance > .9) %>%
+    graph_from_data_frame()
 
-ggraph(bigram_graph, layout = "fr") +
+
+a <- grid::arrow(type = "closed", length = unit(.01, "inches"))
+
+ggraph(sim_graph, layout = "fr") +
     geom_edge_link(aes(edge_alpha = n), show.legend = FALSE,
                    arrow = a, end_cap = circle(.01, 'inches')) +
-    geom_node_point(color = "lightblue", size = 3) +
+    geom_node_point(color = "lightblue", size = 1) +
     geom_node_text(aes(label = name), vjust = 1, hjust = 1) +
     theme_void()
 
