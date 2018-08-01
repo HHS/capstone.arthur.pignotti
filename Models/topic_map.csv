@@ -1,96 +1,206 @@
-"document","topic"
-"Section I Plan Finder Civil Money Penalty CMP Icon or Other Type of Notice",1
-"Section III LIS Enrollee Costsharing for OutofNetwork Part D Drugs",4
-"Section III Tier Composition",5
-"Section III Benefit Review",5
-"Section A  Update of the RxHCC Model",6
-"Section III CY 2019 Formulary Submission Window",8
-"Section A  MA Benchmark Quality Bonus Payments and Rebate",9
-"Section II Coverage of Supervised Exercise Therapy SET for Symptomatic Peripheral Artery Disease PAD",10
-"Section B  Calculation of Fee for Service Cost",12
-"Section I Innovations in Health Plan Design",15
-"Section III Part D MailOrder Refill Consent Policy Solicitation for Comments",16
-"Section III Medication Therapy Management MTM Annual Cost Threshold",17
-"Section III Expanding the Part D OTC Program",18
-"Section D  Retiree Drug Subsidy Amounts",19
-"Section II Medicare Advantage MA Uniformity Flexibility",20
-"Section II Medicare Advantage MA Segmented Service Area Options",20
-"Section H  Enhanced Medication Therapy Management MTM Model",21
-"Section F  Location of Network Areas for PFFS Plans in Plan Year 2020",22
-"Section II Enhanced Disease Management EDM for Dual Eligible Special Needs Plans DSNPs and Institutional Special Needs Plans ISNPs",23
-"Section II Cost Plan Transition to MA under MACRA",24
-"Section II Cost Plan Competition Requirements",25
-"Section II Meaningful Difference Substantially Duplicative Plan Offerings",25
-"Section I  ESRD Risk Adjustment Model for CY 2019",26
-"Section F  Dispensing Fees and Vaccine Administration Fees for Applicable Drugs in the Coverage Gap",27
-"Section M  Medical Loss Ratio Credibility Adjustment",29
-"Section II Plans with Low Enrollment",30
-"Section O  Quality Payment Program",31
-"Section III Part D Benefit Parameters for NonDefined Standard Plans",34
-"Section E  Estimated Total Covered Part D Spending at OutofPocket Threshold for Applicable Beneficiaries",35
-"Section III Specialty Tiers",36
-"Section D  Medicare Part D Benefit Parameters Annual Adjustments for Defined Standard Benefit in 2019",37
-"Section L  Normalization Factors",38
-"Section II Overview of CY 2019 Benefits and Bid Review",39
-"Section II Parts A and B Costsharing for Individuals Enrolled in the Qualified Medicare Beneficiary QMB Program",40
-"Section I Validation Audits",41
-"Section I Audit of the Sponsoring Organizations Compliance Program Effectiveness",43
-"Section II Part C Optional Supplemental Benefits",45
-"Section II Medicare Diabetes Prevention Program MDPP Services Clarification",47
-"Section II Transparency  Timeliness with Prior Authorization Processes",47
-"Section II Total Beneficiary Cost TBC",48
-"Section I Plan Corrections",49
-"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",50
-"Section II Employer Group Waiver Plans",50
-"Section II Health Related Supplemental Benefits",51
-"Section II Maximum OutofPocket MOOP Limits",52
-"Section II Outpatient Observation Services",52
-"Section E  Clinical Trials",54
-"Section G  MA Employer Group Waiver Plans",55
-"Section I Incomplete and Inaccurate Bid Submissions",56
-"Section I Annual Calendar",57
-"Section C  Part D Risk Sharing",58
-"Section III Coordination of Benefits COB User Fee",59
-"Section III Timely Updates to LIS Status Based on Best Available Evidence",59
-"Section II Part C Cost Sharing Standards",60
-"Section III Improving Drug Utilization Review Controls in Medicare Part D",61
-"Section K  Medicare Advantage Coding Pattern Adjustment",63
-"Section B  FFS Growth Percentage",64
-"Section A  MA Growth Percentage",64
-"Section III Low Enrollment Plans Standalone PDPs only",66
-"Section II Rewards and Incentives for Completion of a Health Risk Assessment HRA",66
-"Section I Enhancements to the 2019 Star Ratings and Future Measurement Concepts",67
-"Section D  ESRD Rates",68
-"Section II Per Member Per Month PMPM Actuarial Equivalent AE Cost Sharing Limits",69
-"Section II Tiered Cost Sharing of Medical Benefits",69
-"Section IV  MedicareMedicaid Plans",70
-"Section II Improving Beneficiary Communications and Reducing Burden for Integrated DSNPs",71
-"Section II Special Needs Plan SNP Legislative Sunset Provision",72
-"Section I New Medicare Card Project formerly the Social Security Number Removal Initiative SSNRI",72
-"Section II Special Needs Plan SNPSpecific Networks Research and Development",72
-"Section II Encounter Data Listening Forums Monitoring and Compliance Activities",73
-"Section B  Encounter Data as a Diagnosis Source for 2019",74
-"Section N  Encounter Data as a Diagnosis Source for 2019",74
-"Section H  CMSHCC Risk Adjustment Model for CY 2019",74
-"Section E  Reduced Coinsurance for Applicable Beneficiaries in the Coverage Gap",76
-"Section III Improving Access to Part D Vaccines",76
-"Section C  IME Phase Out",77
-"Section J  Frailty Adjustment for PACE organizations and FIDE SNPs",78
-"Section III Using the Best Available Information when making B vs D Coverage Determinations for Immunosuppressants and Inhalation Durable Medical Equipment DME Supply Drugs",79
-"Section I Enforcement Actions for Provider Directories",79
-"Section I Enhancements to the 2019 Star Ratings and Future Measurement Concepts",2
-"Section I  ESRD Risk Adjustment Model for CY 2019",3
-"Section I Enhancements to the 2019 Star Ratings and Future Measurement Concepts",7
-"Section A  MA Benchmark Quality Bonus Payments and Rebate",11
-"Section E  Estimated Total Covered Part D Spending at OutofPocket Threshold for Applicable Beneficiaries",13
-"Section I Enhancements to the 2019 Star Ratings and Future Measurement Concepts",14
-"Section H  Enhanced Medication Therapy Management MTM Model",28
-"Section II Parts A and B Costsharing for Individuals Enrolled in the Qualified Medicare Beneficiary QMB Program",32
-"Section I Enhancements to the 2019 Star Ratings and Future Measurement Concepts",33
-"Section I Enhancements to the 2019 Star Ratings and Future Measurement Concepts",42
-"Section B  Calculation of Fee for Service Cost",44
-"Section II Improving Beneficiary Communications and Reducing Burden for Integrated DSNPs",46
-"Section III Improving Drug Utilization Review Controls in Medicare Part D",53
-"Section IV  MedicareMedicaid Plans",62
-"Section E  Reduced Coinsurance for Applicable Beneficiaries in the Coverage Gap",65
-"Section I Validation Audits",75
+"document","topic","gamma"
+"Section III Tier Composition",1,0.992615175643026
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",8,0.966628649886087
+"Section II Plans with Low Enrollment",10,0.992186705783216
+"Section II Medicare Advantage MA Segmented Service Area Options",11,0.980006241101965
+"Section I Star Ratings  Display Measures",15,0.602711378351375
+"Section IV  MedicareMedicaid Plans",18,0.801179248864607
+"Section II Cost Plan Transition to MA under MACRA",21,0.98757170744836
+"Section I Star Ratings  Integrity and Completeness",22,0.586542853197612
+"Section I Innovations in Health Plan Design",24,0.995073601181427
+"Section II Medicare Diabetes Prevention Program MDPP Services Clarification",26,0.98934221175884
+"Section D  Retiree Drug Subsidy Amounts",27,0.976922551312201
+"Section C  Part D Risk Sharing",28,0.996262979939493
+"Section I Star Ratings  Measure Changes",30,0.676905605629956
+"Section A  Update of the RxHCC Model",35,0.803135608792773
+"Section M  Medical Loss Ratio Credibility Adjustment",37,0.716830059134892
+"Section II Outpatient Observation Services",38,0.983240937046415
+"Section III Low Enrollment Plans Standalone PDPs only",43,0.989747903085551
+"Section II Per Member Per Month PMPM Actuarial Equivalent AE Cost Sharing Limits",48,0.994621012296951
+"Section II Coverage of Supervised Exercise Therapy SET for Symptomatic Peripheral Artery Disease PAD",49,0.983029741813667
+"Section E  Clinical Trials",54,0.528716764081024
+"Section J  Frailty Adjustment for PACE organizations and FIDE SNPs",55,0.993345069364503
+"Section G  MA Employer Group Waiver Plans",56,0.998734773692845
+"Section II Part C Optional Supplemental Benefits",58,0.981888552926599
+"Section I Star Ratings  General",60,0.995632777601255
+"Section K  Medicare Advantage Coding Pattern Adjustment",66,0.980582817147816
+"Section II Health Related Supplemental Benefits",78,0.994847406372305
+"Section III Part D MailOrder Refill Consent Policy Solicitation for Comments",79,0.993888690399058
+"Section II Special Needs Plan SNP Legislative Sunset Provision",82,0.984928970643737
+"Section Appendix 1 Methodology for Plan Finder PF Composite Price Accuracy Display Measure",89,0.743346578766652
+"Section III LIS Enrollee Costsharing for OutofNetwork Part D Drugs",91,0.991806389050958
+"Section O  Quality Payment Program",92,0.996558997854325
+"Section B  FFS Growth Percentage",95,0.994302396939362
+"Section III Using the Best Available Information when making B vs D Coverage Determinations for Immunosuppressants and Inhalation Durable Medical Equipment DME Supply Drugs",96,0.996788751700673
+"Section II Improving Beneficiary Communications and Reducing Burden for Integrated DSNPs",97,0.699603864600769
+"Section II Overview of CY 2019 Benefits and Bid Review",101,0.993244921634879
+"Section II Part C Cost Sharing Standards",103,0.295185440118017
+"Section I Annual Calendar",113,0.522121110490824
+"Section F  Location of Network Areas for PFFS Plans in Plan Year 2020",115,0.986713344187015
+"Section E  Reduced Coinsurance for Applicable Beneficiaries in the Coverage Gap",119,0.994726336670677
+"Section F  Dispensing Fees and Vaccine Administration Fees for Applicable Drugs in the Coverage Gap",119,0.985877297204695
+"Section A  MA Growth Percentage",120,0.976922551312201
+"Section II Special Needs Plan SNPSpecific Networks Research and Development",120,0.977311365480377
+"Section I Incomplete and Inaccurate Bid Submissions",123,0.540222985951028
+"Section III Medication Therapy Management MTM Annual Cost Threshold",124,0.984928970643737
+"Section C  IME Phase Out",127,0.988014178824949
+"Section II Parts A and B Costsharing for Individuals Enrolled in the Qualified Medicare Beneficiary QMB Program",128,0.994963041931941
+"Section D  ESRD Rates",130,0.994466287063615
+"Section E  Estimated Total Covered Part D Spending at OutofPocket Threshold for Applicable Beneficiaries",132,0.995783204821155
+"Section II Transparency  Timeliness with Prior Authorization Processes",134,0.989257189837102
+"Section II Rewards and Incentives for Completion of a Health Risk Assessment HRA",136,0.991275554605332
+"Section II Tiered Cost Sharing of Medical Benefits",137,0.694003967473101
+"Section I Validation Audits",139,0.533160892579528
+"Section III Coordination of Benefits COB User Fee",140,0.9889937854157
+"Section III Specialty Tiers",140,0.980582817147816
+"Section III Improving Access to Part D Vaccines",144,0.995688704281596
+"Section II Total Beneficiary Cost TBC",146,0.677649407831786
+"Section III Expanding the Part D OTC Program",152,0.991218663499295
+"Section H  Enhanced Medication Therapy Management MTM Model",153,0.683112654766572
+"Section III Improving Drug Utilization Review Controls in Medicare Part D",156,0.35568042924378
+"Section I Plan Corrections",159,0.602325675390245
+"Section A  MA Benchmark Quality Bonus Payments and Rebate",162,0.353753621306039
+"Section L  Normalization Factors",163,0.527077974294582
+"Section III CY 2019 Formulary Submission Window",166,0.862251029454079
+"Section D  Medicare Part D Benefit Parameters Annual Adjustments for Defined Standard Benefit in 2019",169,0.998093521016307
+"Section I Plan Finder Civil Money Penalty CMP Icon or Other Type of Notice",171,0.989825363096033
+"Section N  Encounter Data as a Diagnosis Source for 2019",172,0.550632403486587
+"Section H  CMSHCC Risk Adjustment Model for CY 2019",172,0.967435629191209
+"Section I Enforcement Actions for Provider Directories",173,0.985095771526179
+"Section I New Medicare Card Project formerly the Social Security Number Removal Initiative SSNRI",174,0.979394375328978
+"Section III Part D Benefit Parameters for NonDefined Standard Plans",175,0.910629918542824
+"Section III Timely Updates to LIS Status Based on Best Available Evidence",176,0.984035644075191
+"Section II Maximum OutofPocket MOOP Limits",177,0.996273321671174
+"Section I Star Ratings  Future",179,0.368536189260682
+"Section II Cost Plan Competition Requirements",182,0.980298746734543
+"Section I Audit of the Sponsoring Organizations Compliance Program Effectiveness",183,0.577047099600571
+"Section II Enhanced Disease Management EDM for Dual Eligible Special Needs Plans DSNPs and Institutional Special Needs Plans ISNPs",185,0.986713344187015
+"Section II Medicare Advantage MA Uniformity Flexibility",188,0.994533674555717
+"Section I  ESRD Risk Adjustment Model for CY 2019",189,0.684243261594401
+"Section B  Encounter Data as a Diagnosis Source for 2019",190,0.986167429868104
+"Section III Benefit Review",191,0.978050970097781
+"Section II Employer Group Waiver Plans",191,0.969638235515692
+"Section II Meaningful Difference Substantially Duplicative Plan Offerings",193,0.980298746734543
+"Section I Star Ratings  Disaster Implications",194,0.922762361278122
+"Section B  Calculation of Fee for Service Cost",195,0.745454637610148
+"Section II Encounter Data Listening Forums Monitoring and Compliance Activities",196,0.995213678352861
+"Section I Star Ratings  Categorical Adjustment Index",198,0.410399754421156
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",2,0.000167695226703082
+"Section II Part C Cost Sharing Standards",3,0.282071207694714
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",4,0.000167695226703081
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",5,0.000167695226703082
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",6,0.000167695226703082
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",7,0.000167695226703081
+"Section B  Calculation of Fee for Service Cost",9,0.253683344233128
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",12,0.000167695226703081
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",13,0.000167695226703081
+"Section I Star Ratings  Display Measures",14,0.395939775562775
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",16,0.000167695226703081
+"Section II Part C Cost Sharing Standards",17,0.266795854180651
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",19,0.000167695226703082
+"Section I Star Ratings  Future",20,0.333172124960854
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",23,0.000167695226703081
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",25,0.000167695226703082
+"Section III Improving Drug Utilization Review Controls in Medicare Part D",29,0.302745211011383
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",31,0.000167695226703081
+"Section A  MA Benchmark Quality Bonus Payments and Rebate",32,0.303477125392342
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",33,0.000167695226703081
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",34,0.000167695226703082
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",36,0.000167695226703081
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",39,0.000167695226703082
+"Section I Validation Audits",40,0.465692296148737
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",41,0.000167695226703082
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",42,0.000167695226703082
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",44,0.000167695226703081
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",45,0.000167695226703081
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",46,0.000167695226703082
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",47,0.000167695226703082
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",50,0.000167695226703082
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",51,0.000167695226703082
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",52,0.000167695226703081
+"Section III Part D Benefit Parameters for NonDefined Standard Plans",53,0.0836527298853334
+"Section I Star Ratings  Disaster Implications",57,0.0763499202774244
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",59,0.000167695226703082
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",61,0.000167695226703081
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",62,0.000167695226703081
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",63,0.000167695226703082
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",64,0.000167695226703081
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",65,0.000167695226703082
+"Section I Star Ratings  Integrity and Completeness",67,0.191447747370324
+"Section I Annual Calendar",68,0.468723784617624
+"Section A  MA Benchmark Quality Bonus Payments and Rebate",69,0.155970917012976
+"Section I Incomplete and Inaccurate Bid Submissions",70,0.456308995355121
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",71,0.000167695226703081
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",72,0.000167695226703081
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",73,0.000167695226703081
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",74,0.000167695226703082
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",75,0.000167695226703082
+"Section E  Clinical Trials",76,0.468261085146416
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",77,0.000167695226703082
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",80,0.000167695226703082
+"Section I Star Ratings  Categorical Adjustment Index",81,0.237117754442463
+"Section I Star Ratings  Integrity and Completeness",83,0.221234041801116
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",84,0.000167695226703082
+"Section I Star Ratings  Measure Changes",85,0.132507385096219
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",86,0.000167695226703081
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",87,0.000167695226703081
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",88,0.000167695226703082
+"Section A  MA Benchmark Quality Bonus Payments and Rebate",90,0.185706111653582
+"Section I Star Ratings  Categorical Adjustment Index",93,0.351567113195226
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",94,0.000167695226703082
+"Section I Audit of the Sponsoring Organizations Compliance Program Effectiveness",98,0.417746515764414
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",99,0.000167695226703081
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",100,0.000167695226703082
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",102,0.000167695226703081
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",104,0.000167695226703081
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",105,0.000167695226703081
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",106,0.000167695226703081
+"Section II Total Beneficiary Cost TBC",107,0.139687467027297
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",108,0.000167695226703081
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",109,0.000167695226703082
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",110,0.000167695226703082
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",111,0.000167695226703082
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",112,0.000167695226703082
+"Section I Star Ratings  Future",114,0.29778621169864
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",116,0.000167695226703082
+"Section I Plan Corrections",117,0.391334796735996
+"Section II Tiered Cost Sharing of Medical Benefits",118,0.298130731642955
+"Section I  ESRD Risk Adjustment Model for CY 2019",121,0.313937121848677
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",122,0.000167695226703081
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",125,0.00016769522670308
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",126,0.000167695226703082
+"Section II Part C Cost Sharing Standards",129,0.153745556949282
+"Section II Improving Beneficiary Communications and Reducing Burden for Integrated DSNPs",131,0.298042797682495
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",133,0.000167695226703082
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",135,0.000167695226703082
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",138,0.000167695226703082
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",141,0.000167695226703081
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",142,0.000167695226703082
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",143,0.000167695226703082
+"Section III CY 2019 Formulary Submission Window",145,0.135819289152075
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",147,0.000167695226703081
+"Section A  Update of the RxHCC Model",148,0.193387372933877
+"Section M  Medical Loss Ratio Credibility Adjustment",149,0.270917183459107
+"Section H  Enhanced Medication Therapy Management MTM Model",150,0.315541209433324
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",151,0.000167695226703081
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",154,0.000167695226703081
+"Section I Star Ratings  Measure Changes",155,0.0754675142384217
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",157,0.000167695226703081
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",158,0.000167695226703081
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",160,0.000167695226703081
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",161,0.000167695226703082
+"Section III Improving Drug Utilization Review Controls in Medicare Part D",164,0.341118649407829
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",165,0.000167695226703081
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",167,0.000167695226703082
+"Section L  Normalization Factors",168,0.471375450321187
+"Section I Star Ratings  Measure Changes",170,0.113900822224482
+"Section Appendix 1 Methodology for Plan Finder PF Composite Price Accuracy Display Measure",178,0.254934200094527
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",180,0.000167695226703082
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",181,0.000167695226703081
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",184,0.000167695226703081
+"Section IV  MedicareMedicaid Plans",186,0.197272388532946
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",187,0.000167695226703081
+"Section II Total Beneficiary Cost TBC",192,0.180709425252715
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",197,0.000167695226703081
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",199,0.000167695226703082
+"Section G  Part D Calendar Year Employer Group Waiver Plans Prospective Reinsurance Payment Amount",200,0.000167695226703081

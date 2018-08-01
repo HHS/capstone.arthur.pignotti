@@ -13,8 +13,8 @@ library(SnowballC)
 library(topicmodels)
 library(quanteda)
 
-baselineDoc <- read_excel("Data/AN_Part2 - V2.xlsx", sheet = 1)
-commentsDf <- read_csv("Data/commentsDf.csv")
+baselineDoc <- read_excel("Data/AN_Part2 - V3.xlsx", sheet = 1)
+#commentsDf <- read_csv("Data/commentsDf.csv")
 colnames(baselineDoc) <- make.names(colnames(baselineDoc))
 
 #Load stop words
@@ -31,14 +31,15 @@ baselineDoc_section <- baselineDoc %>%
     group_by(Document.ID) %>%
     filter(Text != "",
            Paragraph.Number >= baseStart) %>%
-    mutate(section = ifelse(str_detect(Text, regex("^section [A-Z]", ignore_case = TRUE)), Text, NA)) %>%
+    mutate(section = ifelse(str_detect(Text, regex("^section [A-Z]", ignore_case = TRUE)), Text, ifelse(str_detect(Text, regex("^attachment [A-Z]", ignore_case = TRUE)), Text, NA))) %>%
     filter(str_count(Text, regex("[A-z]", ignore_case = TRUE))/str_count(Text, regex("[A-z0-9]", ignore_case = TRUE)) > .5) %>% # Removes lines that are 50% or more numbers
     fill(section) %>%
-    filter(!is.na(section))
+    filter(!is.na(section)) %>%
+    filter(str_detect(section, regex("^section [A-Z]", ignore_case = TRUE)))
 
 # Remove table of contents for call letter
 baselineDoc_section <- baselineDoc_section %>%
-    filter(Paragraph.Number < 626 | Paragraph.Number > 695)
+    filter(Paragraph.Number < 514 | Paragraph.Number > 695)
 
 # Find sections w, probably not a real section
 section.count <- baselineDoc_section %>%
@@ -53,6 +54,11 @@ baselineDoc_section <- filter(baselineDoc_section, !section %in% section.count$s
 word.count <- baselineDoc_section %>%
     unnest_tokens(word, Text) %>%
     count()
+
+#### Build to find unbalanced sections ####
+section.word.count <- baselineDoc_section %>%
+    unnest_tokens(word, Text) %>%
+    count(section, sort = TRUE)
 
 bigram.baseline <- baselineDoc_section %>%
     select(section, Document.ID, Text) %>%
@@ -135,7 +141,7 @@ baseline.dtm <- cast_dtm(baseline.tf_idf, section, word, n)
 length(unique(base$section))
 
 base_lda <- LDA(baseline.dtm,
-                k = 70,
+                k = 80,
                 control = list(seed = 1234))
 
 save(base_lda, file = "Models/lda_test.rda")
@@ -198,9 +204,20 @@ baseline.similarity <- textstat_simil(baseline.dfm,
 
 names(baseline.similarity) <- c("doc1", "doc2", "distance")
 
+hist(baseline.similarity$distance)
+
 write.csv(baseline.similarity,
           file = "Models/base_similarity_scores.csv",
           row.names = FALSE)
+
+#### Graphs of Similar Sections ####
+
+test <- baseline %>%
+    filter(section %in% c("Section D  Medicare Part D Benefit Parameters Annual Adjustments for Defined Standard Benefit in 2019", "Section H  Enhanced Medication Therapy Management MTM Model")) %>%
+    count(section, word, sort = TRUE) %>%
+    group_by(section) %>%
+    top_n(20)
+
 
 #### Testing ####
 
