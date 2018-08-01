@@ -146,6 +146,12 @@ base_lda <- LDA(baseline.dtm,
 
 save(base_lda, file = "Models/lda_test.rda")
 
+base_ctm <- CTM(baseline.dtm,
+                k = 80,
+                control = list(seed = 1234))
+
+save(base_ctm, file = "Models/ctm_test.rda")
+
 load("Models/lda_test.rda")
 
 model.topic.term <- tidy(base_lda, matrix = "beta")
@@ -157,8 +163,8 @@ model.doc.term <- inner_join(model.topic.term, model.doc.topic, by = c("topic" =
     summarise(score = sum(score)) %>%
     arrange(desc(score))
 
-write.csv(base_topics_terms, file="Models/modelingTopicsTermsBeta.csv", row.names = FALSE)
-write.csv(base_doc_topics, file="Models/modelingDocsTopicsGamma.csv", row.names = FALSE)
+write.csv(model.doc.term, file="Models/modelingTopicsTermsBeta.csv", row.names = FALSE)
+write.csv(model.doc.topic, file="Models/modelingDocsTopicsGamma.csv", row.names = FALSE)
 
 
 

@@ -57,6 +57,7 @@ comments <- union(comment.words, comment.bigrams)
 
 #### TF-IDF Testing ####
 comment.count <- comments %>%
+    mutate(Document.ID = paste0(Document.ID,"-",Page.Number)) %>%
     count(Document.ID, word, sort = TRUE) %>%
     ungroup()
 
@@ -82,9 +83,9 @@ comment.tf_idf %>%
     facet_wrap(~Document.ID, ncol = 3, scales = "free") +
     coord_flip()
 
-words_dtm_tf_idf <- cast_dtm(words_tf_idf, document = Document.ID, term = word, value = tf_idf)
+words_dtm_tf_idf <- cast_dtm(comment.tf_idf, document = Document.ID, term = word, value = tf_idf)
 
-words_dtm <- cast_dtm(word_count, document = Document.ID, term = word, value = n)
+words_dtm <- cast_dtm(comment.count, document = Document.ID, term = word, value = n)
 #### Convert to DFM and Calculate Similarity Matrices ####
 words_dfm <- cast_dfm(word_count, document = Document.ID, term = word, value = n)
 words_dfm_tf_idf <- cast_dfm(words_tf_idf, document = Document.ID, term = word, value = tf_idf)
@@ -111,19 +112,34 @@ write.csv(similarity, file = "Data/similarity.csv", row.names = FALSE)
 #### Apply Base Model ####
 load("Models/lda_test.rda")
 topic_map <- read.csv(file = "Models/topic_map.csv")
-
+model.doc.term <- read.csv(file="Models/modelingTopicsTermsBeta.csv")
+model.doc.topic <- read.csv(file="Models/modelingDocsTopicsGamma.csv")
 words_dtm.topics <- posterior(base_lda, words_dtm)
 
 words_scoring <- as.data.frame(cbind(Document.ID = rownames(words_dtm.topics$topics),
-                            words_dtm.topics$topics)) %>%
+                                     words_dtm.topics$topics)) %>%
     gather(key = "Topic", value = "Score", 2:71) %>%
     mutate(Topic = as.numeric(Topic)) %>%
-    right_join(base_doc_topics, by = c("Topic" = "topic")) %>%
+    right_join(model.doc.topic, by = c("Topic" = "topic")) %>%
     mutate(final_score = as.numeric(Score) * gamma) %>%
     group_by(Document.ID, document) %>%
     summarise(sum = sum(final_score)) %>%
     arrange(-sum) %>%
     ungroup()
+
+minmax.base <- words_scoring %>%
+    group_by(document) %>%
+    summarise(min = min(sum), max = max(sum))
+
+words_scoring.norm <- words_scoring %>%
+    inner_join(minmax.base, by = c("document" = "document")) %>%
+    mutate(score = (sum-min)/(max-min))
+
+i=11
+subset <- words_scoring.norm %>%
+    #filter(document == unique(words_scoring.norm$document)[i])
+    filter(score > .2)
+hist(subset$score, main = unique(words_scoring.norm$document)[i])
 
 write.csv(words_scoring, file = "Data/scoring.csv", row.names = FALSE)
 
