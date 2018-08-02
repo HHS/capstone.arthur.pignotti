@@ -123,7 +123,7 @@ words_scoring <- as.data.frame(cbind(Document.ID = rownames(words_dtm.topics$top
     right_join(model.doc.topic, by = c("Topic" = "topic")) %>%
     mutate(final_score = as.numeric(Score) * gamma) %>%
     group_by(Document.ID, document) %>%
-    summarise(sum = sum(final_score)) %>%
+    summarise(sum = sum(final_score)/sum(gamma)) %>%
     arrange(-sum) %>%
     ungroup()
 
@@ -135,12 +135,14 @@ words_scoring.norm <- words_scoring %>%
     inner_join(minmax.base, by = c("document" = "document")) %>%
     mutate(score = (sum-min)/(max-min))
 
-i=11
-subset <- words_scoring.norm %>%
-    #filter(document == unique(words_scoring.norm$document)[i])
-    filter(score > .2)
-hist(subset$score, main = unique(words_scoring.norm$document)[i])
-
+for (i in 1:length(unique(words_scoring.norm$document))) {
+    doc <- unique(words_scoring.norm$document)[i]
+    subset <- words_scoring.norm %>%
+        filter(document == doc)
+    png(paste0("score_hists/", doc,".png"), width=1280,height=800)
+    hist(subset$score, main = doc)
+    dev.off()
+}
 write.csv(words_scoring, file = "Data/scoring.csv", row.names = FALSE)
 
 

@@ -160,7 +160,7 @@ model.doc.term <- inner_join(model.topic.term, model.doc.topic, by = c("topic" =
     mutate(score = beta * gamma) %>%
     select(document, term, score) %>%
     group_by(document, term) %>%
-    summarise(score = sum(score)) %>%
+    summarise(score = sum(score)/sum(gamma)) %>%
     arrange(desc(score))
 
 write.csv(model.doc.term, file="Models/modelingTopicsTermsBeta.csv", row.names = FALSE)
@@ -169,10 +169,10 @@ write.csv(model.doc.topic, file="Models/modelingDocsTopicsGamma.csv", row.names 
 doc.topic.terms <- model.topic.term %>%
     inner_join(model.doc.topic, by = c("topic" = "topic")) %>%
     group_by(document, term) %>%
-    summarise(final_beta = sum(beta*gamma)) %>%
+    summarise(final_beta = sum(beta*gamma)/sum(gamma)) %>%
     ungroup() %>%
     group_by(document) %>%
-    top_n(100, final_beta) %>%
+    top_n(200, final_beta) %>%
     ungroup()
 
 write.csv(doc.topic.terms, file = "termTesting.csv", row.names = FALSE)
