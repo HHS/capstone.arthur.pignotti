@@ -29,17 +29,36 @@ cms_stop <- read_csv("Data/cms_stop_words.csv")
 # Remove non-alpha-numeric characters
 commentsDf$Text <- gsub("[^A-z0-9 ]", "", commentsDf$Text)
 
+commentsDf <- mutate(commentsDf, Text = str_replace_all(Text, "-", " "))
+
 #Unnest tokens and removd stop words
-comment.bigrams <- commentsDf %>%
-    unnest_tokens(word, Text, token = "ngrams", n = 2) %>%
-    filter(word %in% bigram.list$word)
+#comment.bigrams <- commentsDf %>%
+#    unnest_tokens(word, Text, token = "ngrams", n = 2) %>%
+#    filter(word %in% bigram.list$word)
 
 bigram.index <- commentsDf %>%
     unnest_tokens(bigram, Text, token = "ngrams", n = 2) %>%
+    rowid_to_column("index") %>%
+    separate(bigram, c("word1", "word2"), sep = " ") %>%
+    mutate(word1 = wordStem(word1),
+           word2 = wordStem(word2))
+
+bigram.last.row <- bigram.index %>%
+    group_by(Document.ID, Page.Number) %>%
+    filter(row_number() == n()) %>%
+    ungroup() %>%
+    mutate(word = word2, index = index + 1) %>%
+    filter(!is.na(word)) %>%
+    select(-c(word1, word2))
+
+bigram.index <- bigram.index %>%
+    union_all(bigram.last.row) %>%
+    unite(word, word1, word2, sep = " ") %>%
+    arrange(Document.ID, Page.Number, index) %>%
     rowid_to_column("index1") %>%
-    inner_join(bigram.list, by = c("bigram" = "word")) %>%
-    mutate(index2 = index1 + 1) %>%
-    select(Document.ID, bigram, index1, index2)
+    select(-index) %>%
+    inner_join(bigram.list, by = c("word" = "word")) %>%
+    mutate(index2 = index1 + 1, index = index1)
 
 comment.words <- commentsDf %>%
     unnest_tokens(word, Text) %>%
@@ -50,10 +69,10 @@ comment.words <- commentsDf %>%
     anti_join(cms_stop) %>%
     anti_join(bigram.index, by = c("index" = "index1")) %>%
     anti_join(bigram.index, by = c("index" = "index2")) %>%
-    mutate(word = wordStem(word)) %>%
-    select(-index)
+    mutate(word = wordStem(word))
 
-comments <- union(comment.words, comment.bigrams)
+comments <- union_all(comment.words, bigram.index) %>%
+    select(-c(index1, index2))
 
 #### TF-IDF Testing ####
 comment.count <- comments %>%
@@ -86,6 +105,11 @@ comment.tf_idf %>%
 words_dtm_tf_idf <- cast_dtm(comment.tf_idf, document = Document.ID, term = word, value = tf_idf)
 
 words_dtm <- cast_dtm(comment.count, document = Document.ID, term = word, value = n)
+
+
+save(comment.tf_idf, file = "Models/words_tf_idf.rda")
+save(words_dfm, file = "Models/words_dfm.rda")
+
 #### Convert to DFM and Calculate Similarity Matrices ####
 words_dfm <- cast_dfm(comment.count, document = Document.ID, term = word, value = n)
 words_dfm_tf_idf <- cast_dfm(comment.tf_idf, document = Document.ID, term = word, value = tf_idf)
@@ -111,6 +135,16 @@ write.csv(similarity, file = "Data/similarity.csv", row.names = FALSE)
 
 #### Apply Base Model ####
 load("Models/lda_test.rda")
+
+#### Find common words in comments, but not in model ####
+model.terms <- base_lda@terms
+comment.term.count.missing <- comment.count %>%
+    group_by(word) %>%
+    summarise(count = sum(n)) %>%
+    arrange(desc(count)) %>%
+    filter(!word %in% model.terms)
+
+
 topic_map <- read.csv(file = "Models/topic_map.csv")
 model.doc.term <- read.csv(file="Models/modelingTopicsTermsBeta.csv")
 model.doc.topic <- read.csv(file="Models/modelingDocsTopicsGamma.csv")

@@ -13,7 +13,7 @@ library(SnowballC)
 library(topicmodels)
 library(quanteda)
 
-baselineDoc <- read_excel("Data/AN_Part2 - V3.xlsx", sheet = 1)
+baselineDoc <- read_excel("Data/AN_Part2 - V4.xlsx", sheet = 1)
 #commentsDf <- read_csv("Data/commentsDf.csv")
 colnames(baselineDoc) <- make.names(colnames(baselineDoc))
 
@@ -24,7 +24,7 @@ data(stop_words)
 cms_stop <- read_csv("Data/cms_stop_words.csv")
 
 # Remove non-alpha-numeric characters
-baselineDoc$Text <- gsub("[^A-z0-9 ]", "", baselineDoc$Text)
+#baselineDoc$Text <- gsub("[^A-z0-9 ]", " ", baselineDoc$Text)
 
 # Add section column and removes lines paragraphs that are mostly numbers, which are generally parts of tables
 baselineDoc_section <- baselineDoc %>%
@@ -32,6 +32,7 @@ baselineDoc_section <- baselineDoc %>%
     filter(Text != "",
            Paragraph.Number >= baseStart) %>%
     mutate(section = ifelse(str_detect(Text, regex("^section [A-Z]", ignore_case = TRUE)), Text, ifelse(str_detect(Text, regex("^attachment [A-Z]", ignore_case = TRUE)), Text, NA))) %>%
+    mutate(Text = str_replace_all(Text, "-", " ")) %>%
     filter(str_count(Text, regex("[A-z]", ignore_case = TRUE))/str_count(Text, regex("[A-z0-9]", ignore_case = TRUE)) > .5) %>% # Removes lines that are 50% or more numbers
     fill(section) %>%
     filter(!is.na(section)) %>%
@@ -41,7 +42,7 @@ baselineDoc_section <- baselineDoc %>%
 baselineDoc_section <- baselineDoc_section %>%
     filter(Paragraph.Number < 514 | Paragraph.Number > 695)
 
-# Find sections w, probably not a real section
+# Find sections with less than 10 words, probably not real sections
 section.count <- baselineDoc_section %>%
     unnest_tokens(word, Text) %>%
     group_by(section) %>%
@@ -59,6 +60,8 @@ word.count <- baselineDoc_section %>%
 section.word.count <- baselineDoc_section %>%
     unnest_tokens(word, Text) %>%
     count(section, sort = TRUE)
+
+write.csv(section.word.count, file = "Models/section_word_count.csv", row.names = FALSE)
 
 bigram.baseline <- baselineDoc_section %>%
     select(section, Document.ID, Text) %>%
@@ -97,11 +100,32 @@ bigram.list <- union(select(filter(bigram.count, n > 10), word),
 write.csv(bigram.list, file = "Data/bigram_list2.csv", row.names = FALSE)
 
 bigram.index <- baselineDoc_section %>%
-    unnest_tokens(bigram, Text, token = "ngrams", n = 2) %>%
+    unnest_tokens(bigram, Text, token = "ngrams", n = 2, collapse = FALSE) %>%
+    rowid_to_column("index") %>%
+    separate(bigram, c("word1", "word2"), sep = " ") %>%
+    mutate(word1 = wordStem(word1),
+           word2 = wordStem(word2))
+    
+bigram.last.row <- bigram.index %>%
+    group_by(Paragraph.Number) %>%
+    filter(row_number() == n()) %>%
+    ungroup() %>%
+    mutate(word = word2, index = index + 1) %>%
+    filter(!is.na(word)) %>%
+    select(-c(word1, word2))
+    
+bigram.index <- bigram.index %>%
+    union_all(bigram.last.row) %>%
+    unite(word, word1, word2, sep = " ") %>%
+    arrange(Paragraph.Number, index) %>%
     rowid_to_column("index1") %>%
-    inner_join(bigram.list, by = c("bigram" = "word")) %>%
-    mutate(index2 = index1 + 1) %>%
-    select(Document.ID, bigram, index1, index2)
+    select(-index) %>%
+    inner_join(bigram.list, by = c("word" = "word")) %>%
+    mutate(index2 = index1 + 1, index = index1) 
+#%>%
+#    select(Document.ID, bigram, index1, index2)
+
+#write.csv(bigram.index, file = "bigram_index.csv", row.names = FALSE)
 
 baseline.unigram <- baselineDoc_section %>%
     unnest_tokens(word, Text) %>%
@@ -114,15 +138,13 @@ baseline.unigram <- baselineDoc_section %>%
     anti_join(bigram.index, by = c("index" = "index2")) %>%
     mutate(word = wordStem(word))
 
-baseline.bigram <- baselineDoc_section %>%
-    unnest_tokens(bigram, Text, token = "ngrams", n = 2) %>%
-    separate(bigram, c("word1", "word2"), sep = " ") %>%
-    mutate(word1 = wordStem(word1),
-           word2 = wordStem(word2)) %>%
-    unite(word, word1, word2, sep = " ") %>%
-    filter(word %in% bigram.list$word)
+#write.csv(baseline.unigram, file = "unigram_index.csv", row.names = FALSE)
 
-baseline <- union_all(baseline.unigram, baseline.bigram)
+baseline <- union_all(baseline.unigram, bigram.index) %>%
+    select(-c(index1, index2)) %>%
+    arrange(Paragraph.Number)
+
+write.csv(baseline, file = "baseline.csv", row.names = FALSE)
 
 baseline.count <- baseline %>%
     count(section, word, sort = TRUE)
@@ -141,7 +163,7 @@ baseline.dtm <- cast_dtm(baseline.tf_idf, section, word, n)
 length(unique(base$section))
 
 base_lda <- LDA(baseline.dtm,
-                k = 80,
+                k = 90,
                 control = list(seed = 1234))
 
 save(base_lda, file = "Models/lda_test.rda")
