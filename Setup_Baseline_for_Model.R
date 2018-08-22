@@ -4,7 +4,7 @@ setwd("C:/Users/P6BQ/Desktop/capstone.arthur.pignotti") #local location of githu
 
 baseStart = 66
 
-#Load libraries
+# Load libraries
 library(tidyverse)
 library(readxl)
 library(tidytext)
@@ -13,14 +13,14 @@ library(SnowballC)
 library(topicmodels)
 library(quanteda)
 
+# Load baseline document for building model
 baselineDoc <- read_excel("Data/AN_Part2 - V4.xlsx", sheet = 1)
-#commentsDf <- read_csv("Data/commentsDf.csv")
 colnames(baselineDoc) <- make.names(colnames(baselineDoc))
 
-#Load stop words
+# Load stop words
 data(stop_words)
 
-#Load CMS-specific stop words
+# Load CMS-specific stop words
 cms_stop <- read_csv("Data/cms_stop_words.csv")
 
 # Remove non-alpha-numeric characters
@@ -63,15 +63,25 @@ section.word.count <- baselineDoc_section %>%
 
 write.csv(section.word.count, file = "Models/section_word_count.csv", row.names = FALSE)
 
+#### Find important bigrams from the baseline document ####
 bigram.baseline <- baselineDoc_section %>%
     select(section, Document.ID, Text) %>%
     ungroup() %>%
-    unnest_tokens(bigram, Text, token = "ngrams", n = 2) %>%
-    separate(bigram, c("word1", "word2"), sep = " ") %>%
-    anti_join(stop_words, by = c("word1" = "word")) %>%
-    anti_join(stop_words, by = c("word2" = "word")) %>%
-    anti_join(cms_stop, by = c("word1" = "word")) %>%
-    anti_join(cms_stop, by = c("word2" = "word")) %>%
+    unnest_tokens(bigram,
+                  Text,
+                  token = "ngrams",
+                  n = 2) %>%
+    separate(bigram,
+             c("word1", "word2"),
+             sep = " ") %>%
+    anti_join(stop_words,
+              by = c("word1" = "word")) %>%
+    anti_join(stop_words,
+              by = c("word2" = "word")) %>%
+    anti_join(cms_stop,
+              by = c("word1" = "word")) %>%
+    anti_join(cms_stop,
+              by = c("word2" = "word")) %>%
     mutate(word1 = wordStem(word1),
            word2 = wordStem(word2)) %>%
     unite(word, word1, word2, sep = " ")
@@ -84,12 +94,16 @@ bigram.section.total <- bigram.section.count %>%
     summarize(total = sum(n))
 
 bigram.count <- bigram.baseline %>%
-    count(word, sort = TRUE)
+    count(word,
+          sort = TRUE)
 
-bigram <- left_join(bigram.section.count, bigram.section.total)
+bigram <- left_join(bigram.section.count,
+                    bigram.section.total)
 
 bigram.tf_idf <- bigram %>%
-    bind_tf_idf(word, section, n) %>%
+    bind_tf_idf(word,
+                section,
+                n) %>%
     arrange(desc(tf_idf))
 
 bigram.list <- union(select(filter(bigram.count, n > 10), word),
@@ -99,10 +113,17 @@ bigram.list <- union(select(filter(bigram.count, n > 10), word),
 
 write.csv(bigram.list, file = "Data/bigram_list2.csv", row.names = FALSE)
 
+#### Integrate Bigrams ####
 bigram.index <- baselineDoc_section %>%
-    unnest_tokens(bigram, Text, token = "ngrams", n = 2, collapse = FALSE) %>%
+    unnest_tokens(bigram,
+                  Text,
+                  token = "ngrams",
+                  n = 2,
+                  collapse = FALSE) %>%
     rowid_to_column("index") %>%
-    separate(bigram, c("word1", "word2"), sep = " ") %>%
+    separate(bigram,
+             c("word1", "word2"),
+             sep = " ") %>%
     mutate(word1 = wordStem(word1),
            word2 = wordStem(word2))
     
@@ -110,78 +131,100 @@ bigram.last.row <- bigram.index %>%
     group_by(Paragraph.Number) %>%
     filter(row_number() == n()) %>%
     ungroup() %>%
-    mutate(word = word2, index = index + 1) %>%
+    mutate(word = word2,
+           index = index + 1) %>%
     filter(!is.na(word)) %>%
     select(-c(word1, word2))
     
 bigram.index <- bigram.index %>%
     union_all(bigram.last.row) %>%
-    unite(word, word1, word2, sep = " ") %>%
-    arrange(Paragraph.Number, index) %>%
+    unite(word,
+          word1,
+          word2,
+          sep = " ") %>%
+    arrange(Paragraph.Number,
+            index) %>%
     rowid_to_column("index1") %>%
     select(-index) %>%
-    inner_join(bigram.list, by = c("word" = "word")) %>%
-    mutate(index2 = index1 + 1, index = index1) 
+    inner_join(bigram.list,
+               by = c("word" = "word")) %>%
+    mutate(index2 = index1 + 1,
+           index = index1) 
 #%>%
 #    select(Document.ID, bigram, index1, index2)
 
 #write.csv(bigram.index, file = "bigram_index.csv", row.names = FALSE)
 
 baseline.unigram <- baselineDoc_section %>%
-    unnest_tokens(word, Text) %>%
+    unnest_tokens(word,
+                  Text) %>%
     rowid_to_column("index") %>%
     filter(!(str_detect(word, regex("^http"))),
            !(str_detect(word, regex("^www")))) %>%
     anti_join(stop_words) %>%
     anti_join(cms_stop) %>%
-    anti_join(bigram.index, by = c("index" = "index1")) %>%
-    anti_join(bigram.index, by = c("index" = "index2")) %>%
+    anti_join(bigram.index,
+              by = c("index" = "index1")) %>%
+    anti_join(bigram.index,
+              by = c("index" = "index2")) %>%
     mutate(word = wordStem(word))
 
 #write.csv(baseline.unigram, file = "unigram_index.csv", row.names = FALSE)
 
-baseline <- union_all(baseline.unigram, bigram.index) %>%
+baseline <- baseline.unigram %>%
+    union_all(bigram.index) %>%
     select(-c(index1, index2)) %>%
     arrange(Paragraph.Number)
 
 write.csv(baseline, file = "baseline.csv", row.names = FALSE)
 
 baseline.count <- baseline %>%
-    count(section, word, sort = TRUE)
+    count(section,
+          word,
+          sort = TRUE)
 
 baseline.total <- baseline.count %>% 
     group_by(section) %>% 
     summarize(total = sum(n))
 
-base <- left_join(baseline.count, baseline.total)
+base <- left_join(baseline.count,
+                  baseline.total)
 
 baseline.tf_idf <- base %>%
-    bind_tf_idf(word, section, n)
+    bind_tf_idf(word,
+                section,
+                n)
 
-baseline.dtm <- cast_dtm(baseline.tf_idf, section, word, n)
+baseline.dtm <- cast_dtm(baseline.tf_idf,
+                         section,
+                         word,
+                         n)
 
-length(unique(base$section))
 
+#### Train topic model ####
 base_lda <- LDA(baseline.dtm,
                 k = 90,
                 control = list(seed = 1234))
 
 save(base_lda, file = "Models/lda_test.rda")
 
-base_ctm <- CTM(baseline.dtm,
-                k = 80,
-                control = list(seed = 1234))
+#base_ctm <- CTM(baseline.dtm,
+#                k = 80,
+#                control = list(seed = 1234))
 
-save(base_ctm, file = "Models/ctm_test.rda")
+#save(base_ctm, file = "Models/ctm_test.rda")
 
 load("Models/lda_test.rda")
 
 model.topic.term <- tidy(base_lda, matrix = "beta")
 model.doc.topic <- tidy(base_lda, matrix = "gamma")
-model.doc.term <- inner_join(model.topic.term, model.doc.topic, by = c("topic" = "topic")) %>%
+model.doc.term <- model.topic.term %>%
+    inner_join(model.doc.topic,
+               by = c("topic" = "topic")) %>%
     mutate(score = beta * gamma) %>%
-    select(document, term, score) %>%
-    group_by(document, term) %>%
+    select(document, term, score, gamma) %>%
+    group_by(document,
+             term) %>%
     summarise(score = sum(score)/sum(gamma)) %>%
     arrange(desc(score))
 
@@ -189,31 +232,39 @@ write.csv(model.doc.term, file="Models/modelingTopicsTermsBeta.csv", row.names =
 write.csv(model.doc.topic, file="Models/modelingDocsTopicsGamma.csv", row.names = FALSE)
 
 doc.topic.terms <- model.topic.term %>%
-    inner_join(model.doc.topic, by = c("topic" = "topic")) %>%
-    group_by(document, term) %>%
+    inner_join(model.doc.topic,
+               by = c("topic" = "topic")) %>%
+    group_by(document,
+             term) %>%
     summarise(final_beta = sum(beta*gamma)/sum(gamma)) %>%
     ungroup() %>%
     group_by(document) %>%
-    top_n(200, final_beta) %>%
+    top_n(200,
+          final_beta) %>%
     ungroup()
 
 write.csv(doc.topic.terms, file = "termTesting.csv", row.names = FALSE)
 
 #### Create Word Clouds of Basline Sections ####
-
 library(wordcloud)
 library(RColorBrewer)
 
 pal2 <- brewer.pal(8,"Dark2")
 for (i in 1:length(unique(doc.topic.terms$document))) {
     doc <- unique(doc.topic.terms$document)[i]
+    
     subset <- doc.topic.terms %>%
         filter(document == doc)
-    png(paste0("clouds/", doc,".png"), width=1280,height=800)
+    
+    png(paste0("clouds/", doc,".png"),
+        width=1280,
+        height=800)
+    
     wordcloud(subset$term, 
               subset$final_beta, 
               scale=c(8,.3),
               colors=pal2)
+    
     dev.off()
 }
 

@@ -1,9 +1,9 @@
 #### Initial Setup ####
-.libPaths( c("C:/R/Packages", .libPaths()) ) #add extra library location
-setwd("C:/Users/P6BQ/Desktop/capstone.arthur.pignotti") #local location of github repo
+.libPaths( c("C:/R/Packages", .libPaths()) ) # add extra library location
+setwd("C:/Users/P6BQ/Desktop/capstone.arthur.pignotti") # local location of github repo
 source("helper_functions.R")
 
-#Load libraries
+# Load libraries
 library(dplyr)
 library(stringr)
 library(ggplot2)
@@ -16,65 +16,76 @@ library(quanteda)
 library(visNetwork)
 
 
-#Load comment data
+# Load comment data
 commentsDf <- read.csv("Data/commentsDf.csv", stringsAsFactors = FALSE)
 bigram.list <- read.csv("Data/bigram_list2.csv", stringsAsFactors = FALSE)
 
+baselineDoc <- read_excel("Data/AN_Part2 - V4.xlsx", sheet = 1)
+colnames(baselineDoc) <- make.names(colnames(baselineDoc))
+
 
 #### Create Corpus Using Tidy ####
-#Load stop words
+# Load stop words
 data(stop_words)
 
-#Load CMS-specific stop words
+# Load CMS-specific stop words
 cms_stop <- read_csv("Data/cms_stop_words.csv")
 
+
 # Remove non-alpha-numeric characters
-commentsDf$Text <- gsub("[^A-z0-9 ]", "", commentsDf$Text)
+#commentsDf$Text <- gsub("[^A-z0-9 ]", "", commentsDf$Text)
 
-#Unnest tokens and removd stop words
-comment.bigrams <- commentsDf %>%
-    unnest_tokens(word, Text, token = "ngrams", n = 2) %>%
-    filter(word %in% bigram.list$word)
+#Unnest tokens and remove stop words
+docs <- commentsDf %>%
+    select(Document.ID, Text) %>%
+    union_all(select(baselineDoc,
+                     Document.ID,
+                     Text))
 
-bigram.index <- commentsDf %>%
-    unnest_tokens(bigram, Text, token = "ngrams", n = 2) %>%
-    rowid_to_column("index1") %>%
-    inner_join(bigram.list, by = c("bigram" = "word")) %>%
-    mutate(index2 = index1 + 1) %>%
-    select(Document.ID, bigram, index1, index2)
+baselineName <- unique(baselineDoc$Document.ID)
 
-comment.words <- commentsDf %>%
+comment.words <- docs %>%
     unnest_tokens(word, Text) %>%
-    rowid_to_column("index") %>%
-    filter(!(str_detect(word, regex("^http"))),
-           !(str_detect(word, regex("^www")))) %>%
-    anti_join(stop_words) %>%
-    anti_join(cms_stop) %>%
-    anti_join(bigram.index, by = c("index" = "index1")) %>%
-    anti_join(bigram.index, by = c("index" = "index2")) %>%
-    mutate(word = wordStem(word)) %>%
-    select(-index)
+#    filter(!(str_detect(word, regex("^http"))),
+#           !(str_detect(word, regex("^www")))) %>%
+#    anti_join(stop_words) %>%
+#    anti_join(cms_stop) %>%
+#    mutate(word = wordStem(word))
 
-comments <- union(comment.words, comment.bigrams)
-
-#### TF-IDF Testing ####
-comment.count <- comments %>%
-    count(Document.ID, word, sort = TRUE) %>%
+#### Create TF-IDF ####
+comment.count <- comment.words %>%
+    count(Document.ID,
+          word,
+          sort = TRUE) %>%
     ungroup()
 
 comment.total <- comment.count %>% 
     group_by(Document.ID) %>% 
     summarize(total = sum(n))
 
-comment <- left_join(comment.count, comment.total)
+comment <- left_join(comment.count,
+                     comment.total)
 
 comment.tf_idf <- comment %>%
-    bind_tf_idf(word, Document.ID, n)
+    bind_tf_idf(word,
+                Document.ID,
+                n)
 
 #### Convert to DFM and Calculate Similarity Matrices ####
-words_dfm <- cast_dfm(comment.count, document = Document.ID, term = word, value = n)
-words_dfm_tf_idf <- cast_dfm(comment.tf_idf, document = Document.ID, term = word, value = tf_idf)
-words_dtm <- cast_dtm(comment.tf_idf, Document.ID, word, n)
+words_dfm <- cast_dfm(comment.count,
+                      document = Document.ID,
+                      term = word,
+                      value = n)
+
+words_dfm_tf_idf <- cast_dfm(comment.tf_idf,
+                             document = Document.ID,
+                             term = word,
+                             value = tf_idf)
+
+words_dtm <- cast_dtm(comment.tf_idf,
+                      Document.ID,
+                      word,
+                      n)
 
 # Calculate similarity matrix and tidy it up
 similarity <- textstat_simil(words_dfm,
@@ -87,7 +98,31 @@ similarity <- textstat_simil(words_dfm,
 names(similarity) <- c("doc1", "doc2", "distance")
 head(similarity)
 
+#### Separate out baseline similarities ####
+baseSim <- similarity %>%
+    filter(doc1 == baselineName | doc2 == baselineName) %>%
+    arrange(-distance)
 
+baseSim1 <- filter(baseSim, doc1 == baselineName)
+
+baseSim2 <- filter(baseSim, doc2 == baselineName) %>%
+    rename(doc1 = doc2,
+           doc2 = doc1)
+
+baseSim <- baseSim1 %>%
+    union_all(baseSim2) %>%
+    arrange(-distance)
+
+unique(baseSim$doc1)
+
+write.csv(baseSim,
+          file = "Data/Similarity_to_Baseline.csv",
+          row.names = FALSE)
+
+similarity <- similarity %>%
+    filter(!(doc1 == baselineName | doc2 == baselineName))
+
+#### Investigate similar comments ####
 hist(filter(similarity, distance > .85)$distance)
 
 count <- similarity %>%

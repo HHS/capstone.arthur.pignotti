@@ -1,9 +1,12 @@
 #### Initial Setup ####
-.libPaths( c("C:/R/Packages", .libPaths()) ) #add extra library location
-setwd("C:/Users/P6BQ/Desktop/capstone.arthur.pignotti") #local location of github repo
-source("helper_functions.R")
+.libPaths( c("C:/R/Packages", .libPaths()) ) # add library location - library workaround
+setwd("C:/Users/P6BQ/Desktop/capstone.arthur.pignotti") # local location of github repo
+source("helper_functions.R") # load helper functions
 
-#Load libraries
+# Similarity to Baseline Document Threshold
+baseSimThres = .95
+
+# Load libraries
 library(dplyr)
 library(stringr)
 library(ggplot2)
@@ -11,95 +14,126 @@ library(tidytext)
 library(tidyverse)
 library(SnowballC)
 library(tm)
-library(topicmodels)
 library(quanteda)
+library(topicmodels)
 
-#Load comment data
-commentsDf <- read.csv("Data/commentsDf.csv", stringsAsFactors = FALSE)
-bigram.list <- read.csv("Data/bigram_list2.csv", stringsAsFactors = FALSE)
+# Load comment data
+commentsDf <- read.csv("Data/commentsDf.csv",
+                       stringsAsFactors = FALSE) # dataset of comments
+bigram.list <- read.csv("Data/bigram_list2.csv",
+                        stringsAsFactors = FALSE) # load list of relevant bigrams
 
+
+#### Remove Comment Attachment that are Uploads of the Baseline Document ####
+baseSim <- read.csv("Data/Similarity_to_Baseline.csv")
+simRemoves <- baseSim %>%
+    filter(distance > baseSimThres) %>%
+    select(doc2) %>%
+    rename(doc = doc2)
+
+commentsDf <- commentsDf %>%
+    filter(!(Document.ID %in% simRemoves$doc))
 
 #### Create Corpus Using Tidy ####
-#Load stop words
-data(stop_words)
+data(stop_words) # load common English stop words
+cms_stop <- read_csv("Data/cms_stop_words.csv") # load CMS-specific stop words
 
-#Load CMS-specific stop words
-cms_stop <- read_csv("Data/cms_stop_words.csv")
-
-# Remove non-alpha-numeric characters
-commentsDf$Text <- gsub("[^A-z0-9 ]", "", commentsDf$Text)
-
-commentsDf <- mutate(commentsDf, Text = str_replace_all(Text, "-", " "))
-
-#Unnest tokens and removd stop words
-#comment.bigrams <- commentsDf %>%
-#    unnest_tokens(word, Text, token = "ngrams", n = 2) %>%
-#    filter(word %in% bigram.list$word)
-
+## Unnest tokens, integrate bigrams, and remove stop words ##
+# Unnnest bigram tokens
 bigram.index <- commentsDf %>%
-    unnest_tokens(bigram, Text, token = "ngrams", n = 2) %>%
-    rowid_to_column("index") %>%
-    separate(bigram, c("word1", "word2"), sep = " ") %>%
+    unnest_tokens(bigram,
+                  Text,
+                  token = "ngrams",
+                  n = 2) %>% # unnest bigram tokens
+    rowid_to_column("index") %>% # add index column
+    separate(bigram,
+             c("word1", "word2"),
+             sep = " ") %>% # separate bigram into two words for stemming 
     mutate(word1 = wordStem(word1),
-           word2 = wordStem(word2))
+           word2 = wordStem(word2)) # stem separated bigrams
 
+# Fix bigram unnesting so it matches word unnesting. Bigram unnesting will not unnest the final word of a cell into the first word of the next cell or by itself so the indexing between bigrams and words will not naturally match. So, we are unnesting the second word from the final bigram from each Document.ID-Page.Number combo to create a separate row with the final word by itself 
 bigram.last.row <- bigram.index %>%
-    group_by(Document.ID, Page.Number) %>%
-    filter(row_number() == n()) %>%
+    group_by(Document.ID,
+             Page.Number) %>% # group by Document.ID and Page.Number
+    filter(row_number() == n()) %>% # filters for the last row of each group
     ungroup() %>%
-    mutate(word = word2, index = index + 1) %>%
-    filter(!is.na(word)) %>%
-    select(-c(word1, word2))
+    mutate(word = word2, # transform the bigram into the final word
+           index = index + 1) %>% # increment the index so it arrange at the end of the Document.ID-Page.Number group when reintegrated
+    filter(!is.na(word)) %>% # remove NA that show up when unnesting text with less than two words
+    select(-c(word1, word2)) # 
 
 bigram.index <- bigram.index %>%
-    union_all(bigram.last.row) %>%
-    unite(word, word1, word2, sep = " ") %>%
-    arrange(Document.ID, Page.Number, index) %>%
+    unite(word,
+          word1,
+          word2,
+          sep = " ") %>% # recombine stemmed bigrams
+    union_all(bigram.last.row) %>% # combine the original unnested bigram and the single word fix
+    arrange(Document.ID,
+            Page.Number,
+            index) %>% # re
     rowid_to_column("index1") %>%
     select(-index) %>%
-    inner_join(bigram.list, by = c("word" = "word")) %>%
-    mutate(index2 = index1 + 1, index = index1)
+    inner_join(bigram.list,
+               by = c("word" = "word")) %>%
+    mutate(index2 = index1 + 1,
+           index = index1)
 
 comment.words <- commentsDf %>%
-    unnest_tokens(word, Text) %>%
+    unnest_tokens(word,
+                  Text) %>%
     rowid_to_column("index") %>%
     filter(!(str_detect(word, regex("^http"))),
-           !(str_detect(word, regex("^www")))) %>%
+           !(str_detect(word, regex("^www")))) %>% 
     anti_join(stop_words) %>%
     anti_join(cms_stop) %>%
-    anti_join(bigram.index, by = c("index" = "index1")) %>%
-    anti_join(bigram.index, by = c("index" = "index2")) %>%
+    anti_join(bigram.index,
+              by = c("index" = "index1")) %>%
+    anti_join(bigram.index,
+              by = c("index" = "index2")) %>%
     mutate(word = wordStem(word))
 
-comments <- union_all(comment.words, bigram.index) %>%
+comments <- comment.words %>%
+    union_all(bigram.index) %>%
     select(-c(index1, index2))
 
-#### TF-IDF Testing ####
+#### Create TF-IDF ####
 comment.count <- comments %>%
     mutate(Document.ID = paste0(Document.ID,"-",Page.Number)) %>%
-    count(Document.ID, word, sort = TRUE) %>%
+    count(Document.ID,
+          word,
+          sort = TRUE) %>%
     ungroup()
 
 comment.total <- comment.count %>% 
     group_by(Document.ID) %>% 
     summarize(total = sum(n))
 
-comment <- left_join(comment.count, comment.total)
+comment <- left_join(comment.count,
+                     comment.total)
 
 comment.tf_idf <- comment %>%
-    bind_tf_idf(word, Document.ID, n)
+    bind_tf_idf(word,
+                Document.ID,
+                n)
 
 comment.tf_idf %>%
-    filter(total > 8000) %>%
+    filter(total > 1000) %>%
     arrange(desc(tf_idf)) %>%
-    mutate(word = factor(word, levels = rev(unique(word)))) %>% 
-    group_by(Document.ID) %>% 
+    mutate(word = factor(word,
+                         levels = rev(unique(word)))) %>% 
+    group_by(Document.ID) %>%
     top_n(15) %>% 
-    ungroup %>%
-    ggplot(aes(word, tf_idf, fill = Document.ID)) +
+    ungroup() %>%
+    ggplot(aes(word,
+               tf_idf,
+               fill = Document.ID)) +
     geom_col(show.legend = FALSE) +
-    labs(x = NULL, y = "tf-idf") +
-    facet_wrap(~Document.ID, ncol = 3, scales = "free") +
+    labs(x = NULL,
+         y = "tf-idf") +
+    facet_wrap(~Document.ID,
+               ncol = 3,
+               scales = "free") +
     coord_flip()
 
 words_dtm_tf_idf <- cast_dtm(comment.tf_idf, document = Document.ID, term = word, value = tf_idf)
@@ -107,37 +141,79 @@ words_dtm_tf_idf <- cast_dtm(comment.tf_idf, document = Document.ID, term = word
 words_dtm <- cast_dtm(comment.count, document = Document.ID, term = word, value = n)
 
 
-save(comment.tf_idf, file = "Models/words_tf_idf.rda")
-save(words_dfm, file = "Models/words_dfm.rda")
-
-#### Convert to DFM and Calculate Similarity Matrices ####
-words_dfm <- cast_dfm(comment.count, document = Document.ID, term = word, value = n)
-words_dfm_tf_idf <- cast_dfm(comment.tf_idf, document = Document.ID, term = word, value = tf_idf)
-
-
-# Calculate similarity matrix and tidy it up
-similarity <- textstat_simil(words_dfm,
-                             margin = "documents",
-                             method = "cosine") %>%
-    as.dist() %>%
-    tidy() %>%
-    arrange(desc(distance))
-
-names(similarity) <- c("doc1", "doc2", "distance")
-head(similarity)
-
-#similarity <- calcDocSim(words_dfm_tf_idf)
-
-count <- similarity %>%
-    filter(distance > .90)
-
-write.csv(similarity, file = "Data/similarity.csv", row.names = FALSE)
-
 #### Apply Base Model ####
-load("Models/lda_test.rda")
+# Load model created in Setup_Baseline_for_Model.R
+load("Models/lda_test.rda") 
+
+topic_map <- read.csv(file = "Models/topic_map.csv")
+model.doc.term <- read.csv(file="Models/modelingTopicsTermsBeta.csv")
+model.doc.topic <- read.csv(file="Models/modelingDocsTopicsGamma.csv")
+
+# Run model against comments
+words_dtm.topics <- posterior(base_lda, words_dtm)
+
+# Transform results into tidy dataframe and map scores to document sections
+words_scoring <- as.data.frame(cbind(Document.ID = rownames(words_dtm.topics$topics),
+                                     words_dtm.topics$topics)) %>%
+    gather(key = "Topic",
+           value = "Score",
+           2:91) %>%
+    mutate(Topic = as.numeric(Topic)) %>%
+    right_join(model.doc.topic,
+               by = c("Topic" = "topic")) %>%
+    mutate(final_score = as.numeric(Score) * gamma) %>%
+    group_by(Document.ID,
+             document) %>%
+    summarise(sum = sum(final_score)/sum(gamma)) %>%
+    arrange(-sum) %>%
+    ungroup()
+
+# Calculate min and max score of each section to normalize scores
+minmax.base <- words_scoring %>%
+    group_by(document) %>%
+    summarise(min = min(sum, na.rm = TRUE),
+              max = max(sum, na.rm = TRUE))
+
+# Mix-Max normalize scores
+words_scoring.norm <- words_scoring %>%
+    inner_join(minmax.base,
+               by = c("document" = "document")) %>%
+    mutate(score = (sum-min)/(max-min))
+
+# Transform dataframe for final use
+words_scoring.matrix <- words_scoring.norm %>%
+    mutate(score = if_else(score < .001,
+                           0,
+                           score)) %>% # Scores below .1% are changed to zero to remove scientific notation
+    select(-c(sum, min, max)) %>% # Remove unneeded scoring components
+    spread(document,
+           score) # Transform tidy dataframe into wide format
+
+# Write out results
+write.csv(words_scoring.matrix, file = "Data/results.csv", row.names = FALSE)
+
+# Create histograms of scores for each section to look at distribution
+for (i in 1:length(unique(words_scoring.norm$document))) {
+    doc <- unique(words_scoring.norm$document)[i]
+
+    subset <- words_scoring.norm %>%
+        filter(document == doc) %>%
+        filter(score > .01)
+
+    png(paste0("score_hists/", doc,".png"),
+        width=1280,
+        height=800)
+
+    hist(subset$score,
+         main = doc)
+
+    dev.off()
+}
+
 
 #### Find common words in comments, but not in model ####
 model.terms <- base_lda@terms
+
 comment.term.count.missing <- comment.count %>%
     group_by(word) %>%
     summarise(count = sum(n)) %>%
@@ -145,160 +221,33 @@ comment.term.count.missing <- comment.count %>%
     filter(!word %in% model.terms)
 
 
-topic_map <- read.csv(file = "Models/topic_map.csv")
-model.doc.term <- read.csv(file="Models/modelingTopicsTermsBeta.csv")
-model.doc.topic <- read.csv(file="Models/modelingDocsTopicsGamma.csv")
-words_dtm.topics <- posterior(base_lda, words_dtm)
-
-words_scoring <- as.data.frame(cbind(Document.ID = rownames(words_dtm.topics$topics),
-                                     words_dtm.topics$topics)) %>%
-    gather(key = "Topic", value = "Score", 2:71) %>%
-    mutate(Topic = as.numeric(Topic)) %>%
-    right_join(model.doc.topic, by = c("Topic" = "topic")) %>%
-    mutate(final_score = as.numeric(Score) * gamma) %>%
-    group_by(Document.ID, document) %>%
-    summarise(sum = sum(final_score)/sum(gamma)) %>%
-    arrange(-sum) %>%
-    ungroup()
-
-minmax.base <- words_scoring %>%
-    group_by(document) %>%
-    summarise(min = min(sum), max = max(sum))
-
-words_scoring.norm <- words_scoring %>%
-    inner_join(minmax.base, by = c("document" = "document")) %>%
-    mutate(score = (sum-min)/(max-min))
-
-for (i in 1:length(unique(words_scoring.norm$document))) {
-    doc <- unique(words_scoring.norm$document)[i]
-    subset <- words_scoring.norm %>%
-        filter(document == doc)
-    png(paste0("score_hists/", doc,".png"), width=1280,height=800)
-    hist(subset$score, main = doc)
-    dev.off()
-}
-write.csv(words_scoring, file = "Data/scoring.csv", row.names = FALSE)
-
-
-
-#### Bigram Testing ####
-
-bigram_count <- commentsDf %>%
-    unnest_tokens(bigram, Text, token = "ngrams", n = 2) %>%
-    separate(bigram, c("word1", "word2"), sep = " ") %>%
-    filter(!word1 %in% stop_words$word) %>%
-    filter(!word2 %in% stop_words$word) %>% 
-    count(Document.ID, word1, word2, sort = TRUE) %>%
-    unite(bigram, word1, word2, sep = " ")
-
-bigram_phrase_count <- commentsDf %>%
-    unnest_tokens(bigram, Text, token = "ngrams", n = 2) %>%
-    separate(bigram, c("word1", "word2"), sep = " ") %>%
-    filter(!word1 %in% stop_words$word) %>%
-    filter(!word2 %in% stop_words$word) %>% 
-    count(word1, word2, sort = TRUE) %>%
-    unite(bigram, word1, word2, sep = " ")
-
-bigram_total <- bigram_count %>% 
-    group_by(bigram) %>% 
-    summarize(total = sum(n)) %>%
-    arrange(desc(total))
-
-bigram_total <- bigram_count %>% 
-    group_by(Document.ID) %>% 
-    summarize(total = sum(n))
-
-bigrams <- left_join(bigram_count, bigram_total)
-
-bigram_tf_idf <- bigrams %>%
-    bind_tf_idf(bigram, Document.ID, n) %>%
-    arrange(desc(tf_idf))
-
-bigram_tf_idf %>%
-    filter(total > 7000) %>%
-    arrange(desc(tf_idf)) %>%
-    mutate(bigram = factor(bigram, levels = rev(unique(bigram))))%>% 
-    group_by(Document.ID) %>% 
-    top_n(15) %>% 
-    ungroup %>%
-    ggplot(aes(bigram, tf_idf, fill = Document.ID)) +
-    geom_col(show.legend = FALSE) +
-    labs(x = NULL, y = "tf-idf") +
-    facet_wrap(~Document.ID, ncol = 2, scales = "free") +
-    coord_flip()
-
-
-
-#### Network Graph ####
-
-
-library(igraph)
-library(ggraph)
-set.seed(2017)
-
-bigram_graph <- commentsDf %>%
-    unnest_tokens(bigram, Text, token = "ngrams", n = 2) %>%
-    separate(bigram, c("word1", "word2"), sep = " ") %>%
-    filter(!word1 %in% stop_words$word) %>%
-    filter(!word2 %in% stop_words$word) %>% 
-    count(word1, word2, sort = TRUE) %>% 
-    filter(n > 1000) %>%
-    graph_from_data_frame()
-
-sim_graph <- similarity %>%
-    filter(distance > .9) %>%
-    graph_from_data_frame()
-
-
-a <- grid::arrow(type = "closed", length = unit(.01, "inches"))
-
-ggraph(sim_graph, layout = "fr") +
-    geom_edge_link(aes(edge_alpha = n), show.legend = FALSE,
-                   arrow = a, end_cap = circle(.01, 'inches')) +
-    geom_node_point(color = "lightblue", size = 1) +
-    geom_node_text(aes(label = name), vjust = 1, hjust = 1) +
-    theme_void()
-
-
-
-#### Pairwaise Correlations ####
-
-
-library(widyr)
-
-word_cors <- test1 %>%
-    group_by(word) %>%
-    filter(n() >= 100) %>%
-    pairwise_cor(word, Document.ID, sort = TRUE)
-
-
-word_cors %>%
-    filter(item1 %in% c("drug", "dir", "pharmacy", "pbm")) %>%
-    group_by(item1) %>%
-    top_n(10) %>%
-    ungroup() %>%
-    mutate(item2 = reorder(item2, correlation)) %>%
-    ggplot(aes(item2, correlation)) +
-    geom_bar(stat = "identity") +
-    facet_wrap(~ item1, scales = "free") +
-    coord_flip()
-
-
 #### Sentiment Analysis Testing ####
 
 nrc_joy <- get_sentiments("nrc") %>% 
     filter(sentiment == "joy")
 
-test_sentiment <- test1 %>%
+comment.unigrams <- commentsDf %>%
+    unnest_tokens(word, Text) %>%
+    rowid_to_column("index") %>%
+    filter(!(str_detect(word, regex("^http"))),
+           !(str_detect(word, regex("^www")))) %>% 
+    anti_join(stop_words) %>%
+    anti_join(cms_stop) %>%
+    anti_join(bigram.index, by = c("index" = "index1")) %>%
+    anti_join(bigram.index, by = c("index" = "index2")) %>%
+    mutate(word = wordStem(word))
+
+test_sentiment <- comment.unigrams %>%
     inner_join(get_sentiments("bing")) %>%
+    filter(Page.Number != 0) %>%
     count(Document.ID, Page.Number, sentiment) %>%
     spread(sentiment, n, fill = 0) %>%
     mutate(sentiment = positive - negative) %>%
-    filter(abs(sentiment)>200)
+    #filter(abs(sentiment)>10) %>%
+    rowid_to_column("index")
 
 ggplot(test_sentiment, aes(index, sentiment, fill = Document.ID)) +
-    geom_col(show.legend = FALSE) +
-    facet_wrap(~Document.ID, ncol = 2, scales = "free_x")
+    geom_col(show.legend = FALSE)
 
 test_sentiment <- test1 %>%
     inner_join(get_sentiments("bing")) %>%
