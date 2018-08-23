@@ -203,7 +203,7 @@ baseline.dtm <- cast_dtm(baseline.tf_idf,
 
 #### Train topic model ####
 base_lda <- LDA(baseline.dtm,
-                k = 90,
+                k = 79,
                 control = list(seed = 1234))
 
 save(base_lda, file = "Models/lda_test.rda")
@@ -215,6 +215,7 @@ save(base_lda, file = "Models/lda_test.rda")
 #save(base_ctm, file = "Models/ctm_test.rda")
 
 load("Models/lda_test.rda")
+
 
 model.topic.term <- tidy(base_lda, matrix = "beta")
 model.doc.topic <- tidy(base_lda, matrix = "gamma")
@@ -228,6 +229,7 @@ model.doc.term <- model.topic.term %>%
     summarise(score = sum(score)/sum(gamma)) %>%
     arrange(desc(score))
 
+
 write.csv(model.doc.term, file="Models/modelingTopicsTermsBeta.csv", row.names = FALSE)
 write.csv(model.doc.topic, file="Models/modelingDocsTopicsGamma.csv", row.names = FALSE)
 
@@ -238,12 +240,19 @@ doc.topic.terms <- model.topic.term %>%
              term) %>%
     summarise(final_beta = sum(beta*gamma)/sum(gamma)) %>%
     ungroup() %>%
-    group_by(document) %>%
-    top_n(200,
-          final_beta) %>%
-    ungroup()
+    mutate(final_beta = if_else(final_beta < .001,
+                           0,
+                           final_beta)) %>% # Scores below .1% are changed to zero to remove scientific notation
+    arrange(document, -final_beta)
+#%>%
+#    group_by(document) %>%
+#    top_n(200,
+#          final_beta) %>%
+#    ungroup()
 
-write.csv(doc.topic.terms, file = "termTesting.csv", row.names = FALSE)
+#write.csv(doc.topic.terms, file = "termTesting.csv", row.names = FALSE)
+
+
 
 #### Create Word Clouds of Basline Sections ####
 library(wordcloud)
@@ -254,16 +263,18 @@ for (i in 1:length(unique(doc.topic.terms$document))) {
     doc <- unique(doc.topic.terms$document)[i]
     
     subset <- doc.topic.terms %>%
-        filter(document == doc)
-    
+        filter(document == doc) %>%
+        arrange(-final_beta) %>%
+        slice(1:200)
+        
     png(paste0("clouds/", doc,".png"),
-        width=1280,
-        height=800)
+        width = 1280,
+        height = 800)
     
     wordcloud(subset$term, 
               subset$final_beta, 
-              scale=c(8,.3),
-              colors=pal2)
+              scale = c(8,.3),
+              colors = pal2)
     
     dev.off()
 }
