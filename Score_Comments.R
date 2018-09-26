@@ -3,9 +3,6 @@
 setwd("C:/Users/P6BQ/Desktop/capstone.arthur.pignotti") # local location of github repo
 source("helper_functions.R") # load helper functions
 
-# Similarity to Baseline Document Threshold
-baseSimThres = .95
-
 # Load libraries
 library(dplyr)
 library(stringr)
@@ -17,12 +14,16 @@ library(tm)
 library(quanteda)
 library(topicmodels)
 
+# Similarity to Baseline Document Threshold
+baseSimThres = .95
+
 # Load comment data
 commentsDf <- read.csv("Data/commentsDf.csv",
                        stringsAsFactors = FALSE) # dataset of comments
 bigram.list <- read.csv("Data/bigram_list2.csv",
                         stringsAsFactors = FALSE) # load list of relevant bigrams
 
+commentsDf$Text <- gsub("[^A-z0-9 ]", " ", commentsDf$Text)
 
 #### Remove Comment Attachment that are Uploads of the Baseline Document ####
 baseSim <- read.csv("Data/Similarity_to_Baseline.csv")
@@ -117,47 +118,47 @@ comment.tf_idf <- comment %>%
                 Document.ID,
                 n)
 
-#comment.tf_idf %>%
-#    filter(total > 1000) %>%
-#    arrange(desc(tf_idf)) %>%
-#    mutate(word = factor(word,
-#                         levels = rev(unique(word)))) %>% 
-#    group_by(Document.ID) %>%
-#    top_n(15) %>% 
-#    ungroup() %>%
-#    ggplot(aes(word,
-#               tf_idf,
-#               fill = Document.ID)) +
-#    geom_col(show.legend = FALSE) +
-#    labs(x = NULL,
-#         y = "tf-idf") +
-#    facet_wrap(~Document.ID,
-#               ncol = 3,
-#               scales = "free") +
-#    coord_flip()
+words_dtm_tf_idf <- cast_dtm(comment.tf_idf,
+                             document = Document.ID,
+                             term = word,
+                             value = tf_idf)
 
-words_dtm_tf_idf <- cast_dtm(comment.tf_idf, document = Document.ID, term = word, value = tf_idf)
-
-words_dtm <- cast_dtm(comment.count, document = Document.ID, term = word, value = n)
+words_dtm <- cast_dtm(comment.count,
+                      document = Document.ID,
+                      term = word,
+                      value = n)
 
 
 #### Apply Base Model ####
 # Load model created in Setup_Baseline_for_Model.R
 load("Models/lda_test.rda") 
 
-topic_map <- read.csv(file = "Models/topic_map.csv")
-model.doc.term <- read.csv(file="Models/modelingTopicsTermsBeta.csv")
-model.doc.topic <- read.csv(file="Models/modelingDocsTopicsGamma.csv")
-
 # Run model against comments
-words_dtm.topics <- posterior(base_lda, words_dtm)
+words_dtm.topics <- posterior(base_lda,
+                              words_dtm,
+                              control = list(seed = 1234))
+
+save(words_dtm.topics, file = "Models/comment_scores.rda")
+
+# Model parameters to map to document sections and calculate final scores
+model.topic.term <- tidy(base_lda, matrix = "beta")
+model.doc.topic <- tidy(base_lda, matrix = "gamma")
+model.doc.term <- model.topic.term %>%
+    inner_join(model.doc.topic,
+               by = c("topic" = "topic")) %>%
+    mutate(score = beta * gamma) %>%
+    select(document, term, score, gamma) %>%
+    group_by(document,
+             term) %>%
+    summarise(score = sum(score)/sum(gamma)) %>%
+    arrange(desc(score))
 
 # Transform results into tidy dataframe and map scores to document sections
 words_scoring <- as.data.frame(cbind(Document.ID = rownames(words_dtm.topics$topics),
                                      words_dtm.topics$topics)) %>%
     gather(key = "Topic",
            value = "Score",
-           2:51) %>%
+           2:87) %>%
     mutate(Topic = as.numeric(Topic)) %>%
     right_join(model.doc.topic,
                by = c("Topic" = "topic")) %>%
@@ -218,6 +219,7 @@ comment.term.count.missing <- comment.count %>%
     group_by(word) %>%
     summarise(count = sum(n)) %>%
     arrange(desc(count)) %>%
-    filter(!word %in% model.terms)
+    filter(!word %in% model.terms) %>%
+    filter(count > 50)
 
-
+hist(filter(comment.term.count.missing, count < 500)$count)

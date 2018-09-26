@@ -2,7 +2,7 @@
 .libPaths( c("C:/R/Packages", .libPaths()) ) #add extra library location
 setwd("C:/Users/P6BQ/Desktop/capstone.arthur.pignotti") #local location of github repo
 
-baseStart = 66
+#baseStart = 66
 
 # Load libraries
 library(tidyverse)
@@ -14,7 +14,7 @@ library(topicmodels)
 library(quanteda)
 
 # Load baseline document for building model
-baselineDoc <- read_excel("Data/AN_Part2 - V4.xlsx", sheet = 1)
+baselineDoc <- read_excel("Data/AN - V5.xlsx", sheet = 1)
 colnames(baselineDoc) <- make.names(colnames(baselineDoc))
 
 # Load stop words
@@ -29,8 +29,8 @@ cms_stop <- read_csv("Data/cms_stop_words.csv")
 # Add section column and removes lines paragraphs that are mostly numbers, which are generally parts of tables
 baselineDoc_section <- baselineDoc %>%
     group_by(Document.ID) %>%
-    filter(Text != "",
-           Paragraph.Number >= baseStart) %>%
+    filter(Text != "") %>%
+    #filter(Paragraph.Number >= baseStart) %>%
     mutate(section = ifelse(str_detect(Text, regex("^section [A-Z]", ignore_case = TRUE)), Text, ifelse(str_detect(Text, regex("^attachment [A-Z]", ignore_case = TRUE)), Text, NA))) %>%
     mutate(Text = str_replace_all(Text, "-", " ")) %>%
     filter(str_count(Text, regex("[A-z]", ignore_case = TRUE))/str_count(Text, regex("[A-z0-9]", ignore_case = TRUE)) > .5) %>% # Removes lines that are 50% or more numbers
@@ -40,7 +40,7 @@ baselineDoc_section <- baselineDoc %>%
 
 # Remove table of contents for call letter
 baselineDoc_section <- baselineDoc_section %>%
-    filter(Paragraph.Number < 514 | Paragraph.Number > 695)
+    filter(Paragraph.Number < 593 | Paragraph.Number > 774)
 
 # Find sections with less than 10 words, probably not real sections
 section.count <- baselineDoc_section %>%
@@ -104,7 +104,9 @@ bigram.tf_idf <- bigram %>%
     bind_tf_idf(word,
                 section,
                 n) %>%
-    arrange(desc(tf_idf))
+    arrange(desc(tf_idf)) %>%
+    select(-n) %>%
+    inner_join(bigram.count, by = c("word" = "word"))
 
 bigram.list <- union(select(filter(bigram.count, n > 10), word),
                      select(filter(bigram.tf_idf, n > 5 & tf_idf > .1), word)) %>%
@@ -203,7 +205,7 @@ baseline.dtm <- cast_dtm(baseline.tf_idf,
 
 #### Train topic model ####
 base_lda <- LDA(baseline.dtm,
-                k = 79,
+                k = 86,
                 control = list(seed = 1234))
 
 save(base_lda, file = "Models/lda_test.rda")
@@ -230,8 +232,8 @@ model.doc.term <- model.topic.term %>%
     arrange(desc(score))
 
 
-write.csv(model.doc.term, file="Models/modelingTopicsTermsBeta.csv", row.names = FALSE)
-write.csv(model.doc.topic, file="Models/modelingDocsTopicsGamma.csv", row.names = FALSE)
+#write.csv(model.doc.term, file="Models/modelingTopicsTermsBeta.csv", row.names = FALSE)
+#write.csv(model.doc.topic, file="Models/modelingDocsTopicsGamma.csv", row.names = FALSE)
 
 doc.topic.terms <- model.topic.term %>%
     inner_join(model.doc.topic,
@@ -244,13 +246,6 @@ doc.topic.terms <- model.topic.term %>%
                            0,
                            final_beta)) %>% # Scores below .1% are changed to zero to remove scientific notation
     arrange(document, -final_beta)
-#%>%
-#    group_by(document) %>%
-#    top_n(200,
-#          final_beta) %>%
-#    ungroup()
-
-#write.csv(doc.topic.terms, file = "termTesting.csv", row.names = FALSE)
 
 
 
@@ -265,7 +260,7 @@ for (i in 1:length(unique(doc.topic.terms$document))) {
     subset <- doc.topic.terms %>%
         filter(document == doc) %>%
         arrange(-final_beta) %>%
-        slice(1:200)
+        slice(1:50)
         
     png(paste0("clouds/", doc,".png"),
         width = 1280,
@@ -273,7 +268,7 @@ for (i in 1:length(unique(doc.topic.terms$document))) {
     
     wordcloud(subset$term, 
               subset$final_beta, 
-              scale = c(8,.3),
+              scale = c(8,.2),
               colors = pal2)
     
     dev.off()
@@ -324,6 +319,30 @@ test <- baseline %>%
     top_n(20)
 
 
+#### Top terms for each topic ####
+
+top_terms <- model.topic.term %>%
+    group_by(topic) %>%
+    top_n(10, beta) %>%
+    ungroup() %>%
+    arrange(topic, -beta)
+
+top_terms %>%
+    filter(topic < 26) %>%
+    mutate(term = reorder(term, beta)) %>%
+    group_by(topic, term) %>%    
+    arrange(desc(beta)) %>%  
+    ungroup() %>%
+    mutate(term = factor(paste(term, topic, sep = "__"), 
+                         levels = rev(paste(term, topic, sep = "__")))) %>%
+    ggplot(aes(term, beta, fill = as.factor(topic))) +
+    geom_col(show.legend = FALSE) +
+    coord_flip() +
+    scale_x_discrete(labels = function(x) gsub("__.+$", "", x)) +
+    labs(title = "Top 10 terms in each LDA topic",
+         x = NULL, y = expression(beta)) +
+    facet_wrap(~ topic, ncol = 5, scales = "free")
+
 #### Testing ####
 
 test <- base_doc_topics %>%
@@ -362,3 +381,31 @@ model_top_terms %>%
     geom_col(show.legend = FALSE) +
     facet_wrap(~ document, scales = "free") +
     coord_flip()
+
+
+# Trying word pair network plots
+library(widyr)
+library(ggplot2)
+library(igraph)
+library(ggraph)
+
+
+section.word.pairs <- baseline.unigram %>%
+    ungroup() %>%
+    pairwise_cor(section, word,
+                 sort = TRUE,
+                 upper = FALSE) %>%
+    filter(item1 != "section",
+           item2 != "section")
+
+
+set.seed(1234)
+section.word.pairs %>%
+    filter(correlation >= .4) %>%
+    graph_from_data_frame() %>%
+    ggraph(layout = "fr") +
+    geom_edge_link(aes(edge_alpha = correlation, edge_width = correlation), edge_colour = "cyan4") +
+    geom_node_point(size = 3) +
+    geom_node_text(aes(label = name), repel = TRUE, 
+                   point.padding = unit(0.1, "lines")) +
+    theme_void()

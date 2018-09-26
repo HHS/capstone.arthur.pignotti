@@ -1,4 +1,18 @@
+#### Initial Setup ####
+.libPaths( c("C:/R/Packages", .libPaths()) ) # add library location - library workaround
+setwd("C:/Users/P6BQ/Desktop/capstone.arthur.pignotti") # local location of github repo
+source("helper_functions.R") # load helper functions
+
+# Load libraries
+library(tidyverse)
+library(tidytext)
+library(tm)
+library(SnowballC)
+library(topicmodels)
+library(quanteda)
+
 load("Models/lda_test.rda")
+test_lda <- base_lda
 
 model.topic.term <- tidy(base_lda, matrix = "beta")
 model.doc.topic <- tidy(base_lda, matrix = "gamma")
@@ -12,6 +26,10 @@ model.doc.term <- model.topic.term %>%
     summarise(score = sum(score)/sum(gamma)) %>%
     arrange(desc(score))
 
+weight <- model.doc.term %>%
+    group_by(document) %>%
+    summarise(weight = sum(score))
+
 test <- model.doc.term %>%
     mutate(score = log(score)) %>%
     arrange(document, term) %>%
@@ -24,20 +42,26 @@ doc_map <- data.frame(Section = docs) %>%
 
 test_lda@beta <- as.matrix(test)
 test_lda@terms <- colnames(test)
-test_lda@k <- as.integer(79)
+test_lda@k <- as.integer(86)
 test_lda@documents <- docs
 
 words_dtm.topics <- posterior(test_lda, words_dtm)
+
+new.topic.term <- tidy(test_lda, matrix = "beta")
+
 
 # Transform results into tidy dataframe and map scores to document sections
 words_scoring <- as.data.frame(cbind(Document.ID = rownames(words_dtm.topics$topics),
                                      words_dtm.topics$topics)) %>%
     gather(key = "document",
            value = "Score",
-           2:80) %>%
+           2:87) %>%
     mutate(Score = as.numeric(Score),
            document = as.numeric(document)) %>%
-    inner_join(doc_map, by = c("document" = "Topic"))
+    inner_join(doc_map, by = c("document" = "Topic")) %>%
+    mutate(Score = if_else( Score < .001,
+                            0,
+                            Score)) # Scores below .1% are changed to zero to remove scientific notation
 
 
 # Calculate min and max score of each section to normalize scores
@@ -54,9 +78,6 @@ words_scoring.norm <- words_scoring %>%
 
 # Transform dataframe for final use
 words_scoring.matrix <- words_scoring.norm %>%
-    mutate(Final_score = if_else(Final_score < .001,
-                           0,
-                           Final_score)) %>% # Scores below .1% are changed to zero to remove scientific notation
     select(-c(Score, min, max, document)) %>% # Remove unneeded scoring components
     spread(Section,
            Final_score) # Transform tidy dataframe into wide format
